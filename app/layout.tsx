@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <CivicAuthProvider  clientId={"0949f8c4-3295-4779-a71a-de8147d0a27f"}> {/* TODO: Replace YOUR_APP_ID with actual App ID */}
+          <CivicAuthProvider  clientId={""}> {/* TODO: Replace YOUR_APP_ID with actual App ID */}
             {children}
           </CivicAuthProvider>
           <Toaster />

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { Navigation } from "@/components/custom/navigation"
 import { TaskCard } from "@/components/custom/task-card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, SlidersHorizontal } from "lucide-react"
+import { useUser } from "@civic/auth-web3/react"
 
 // Mock data
 const mockTasks = [
@@ -126,6 +128,23 @@ const mockTasks = [
 const categories = ["All", "Design", "Development", "Writing", "Blockchain", "Video", "Marketing"]
 
 export default function MarketplacePage() {
+  const { user, isLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading or redirecting...</p>
+      </div>
+    );
+  }
+
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [sortBy, setSortBy] = useState("newest")

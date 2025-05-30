@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { Navigation } from "@/components/custom/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +22,7 @@ import {
   Eye,
   Download,
 } from "lucide-react"
+import { useUser } from "@civic/auth-web3/react"
 
 // Mock data
 const stats = [
@@ -124,6 +126,23 @@ const getEscrowColor = (status: string) => {
 }
 
 export default function DashboardPage() {
+  const { user, isLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading or redirecting...</p>
+      </div>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState("overview")
 
   return (

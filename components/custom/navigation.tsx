@@ -5,18 +5,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar" // Removed Avatar imports
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuSeparator,
-//   DropdownMenuTrigger,
-// } from "@/components/ui/dropdown-menu" // Removed DropdownMenu imports
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/custom/theme-toggle"
-import { Menu, Bell, Briefcase, LogIn } from "lucide-react" // Removed User, Settings, LogOut. Added LogIn
+import { Menu, Bell, Briefcase, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUser } from "@civic/auth-web3/react";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -28,6 +21,21 @@ const navigation = [
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const [isCivicLoading, setIsCivicLoading] = useState(false);
+  const [civicError, setCivicError] = useState<string | null>(null);
+  const { user, signIn, isLoading: isUserLoading } = useUser();
+
+  const handleCivicLogin = async () => {
+    setIsCivicLoading(true);
+    setCivicError(null);
+    try {
+      await signIn();
+    } catch (err) {
+      console.error('Civic login failed:', err);
+      setCivicError('Login failed. Please try again.');
+    }
+    setIsCivicLoading(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
@@ -75,9 +83,12 @@ export function Navigation() {
 
           {/* Sign In Button */}
           <Link href="/" passHref>
-            <Button variant="outline">
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign In
+            <Button
+              variant="outline"
+              onClick={handleCivicLogin}
+              disabled={isCivicLoading || isUserLoading}
+            >
+              {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
             </Button>
           </Link>
         </div>
@@ -114,9 +125,13 @@ export function Navigation() {
                   </div>
                   {/* Sign In Button for Mobile */}
                   <Link href="/" passHref>
-                    <Button variant="outline" className="w-full" onClick={() => setMobileMenuOpen(false)}>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Sign In
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleCivicLogin}
+                      disabled={isCivicLoading || isUserLoading}
+                    >
+                      {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
                     </Button>
                   </Link>
                 </div>

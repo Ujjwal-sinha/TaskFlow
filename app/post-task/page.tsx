@@ -2,8 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { Navigation } from "@/components/custom/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ChevronLeft, ChevronRight, Upload, X, FileText, DollarSign, Calendar, Tag, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useUser } from "@civic/auth-web3/react"
 
 const steps = [
   { id: 1, title: "Basic Info", icon: FileText },
@@ -70,6 +72,23 @@ const skills = [
 ]
 
 export default function PostTaskPage() {
+  const { user, isLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading or redirecting...</p>
+      </div>
+    );
+  }
+
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     title: "",

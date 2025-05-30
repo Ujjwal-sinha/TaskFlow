@@ -14,5 +14,4 @@ This project aims to build a full-stack decentralized micro-task bounty platform
 - **Backend**: Node.js + Express (or FastAPI)
 - **Blockchain**: XDC Network (Solidity Smart Contracts)
 - **AI Agent Layer**: Eliza OS (Python)
-- **Database**: MongoDB
 - **Storage (Optional)**: IPFS/Filecoin

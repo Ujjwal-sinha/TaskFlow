@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { CivicAuthProvider } from "@civic/auth-web3/react"; // Added import
 import { createCivicAuthPlugin } from "@civic/auth-web3/nextjs"
+import { Chatbot } from "@/components/custom/chatbot"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -23,10 +24,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <CivicAuthProvider  clientId={""}> {/* TODO: Replace YOUR_APP_ID with actual App ID */}
+          <CivicAuthProvider  clientId={process.env.NEXT_PUBLIC_CIVIC_CLIENT_ID || ""}>
             {children}
           </CivicAuthProvider>
           <Toaster />
+<Chatbot/>
         </ThemeProvider>
       </body>
     </html>

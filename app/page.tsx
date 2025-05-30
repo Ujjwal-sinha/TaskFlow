@@ -276,13 +276,7 @@ export default function HomePage() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 1, type: "spring", stiffness: 260, damping: 20 }}
         >
-          <Button
-            size="lg"
-            className="rounded-full shadow-lg bg-gradient-to-r from-apple-blue to-apple-purple hover:shadow-xl transition-all duration-300 hover:scale-105"
-          >
-            <span className="mr-2">Get Started</span>
-            <ArrowUpRight className="h-4 w-4" />
-          </Button>
+          
         </motion.div>
       </div>
 

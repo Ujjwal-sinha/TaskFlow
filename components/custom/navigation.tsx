@@ -16,6 +16,7 @@ const navigation = [
   { name: "Marketplace", href: "/marketplace" },
   { name: "Dashboard", href: "/dashboard" },
   { name: "Post Task", href: "/post-task" },
+  { name: "Chatbot", href: "/chatbot" },
 ]
 
 export function Navigation() {
@@ -23,7 +24,7 @@ export function Navigation() {
   const pathname = usePathname()
   const [isCivicLoading, setIsCivicLoading] = useState(false);
   const [civicError, setCivicError] = useState<string | null>(null);
-  const { user, signIn, isLoading: isUserLoading } = useUser();
+  const { user, signIn, signOut, isLoading: isUserLoading } = useUser();
 
   const handleCivicLogin = async () => {
     setIsCivicLoading(true);
@@ -35,6 +36,14 @@ export function Navigation() {
       setCivicError('Login failed. Please try again.');
     }
     setIsCivicLoading(false);
+  };
+
+  const handleCivicLogout = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('Civic logout failed:', err);
+    }
   };
 
   return (
@@ -81,16 +90,22 @@ export function Navigation() {
             <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-apple-red text-xs"></span>
           </Button>
 
-          {/* Sign In Button */}
-          <Link href="/" passHref>
-            <Button
-              variant="outline"
-              onClick={handleCivicLogin}
-              disabled={isCivicLoading || isUserLoading}
-            >
-              {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
+          {/* Authentication Buttons */}
+          {user ? (
+            <Button variant="outline" onClick={handleCivicLogout}>
+              Sign Out
             </Button>
-          </Link>
+          ) : (
+            <Link href="/" passHref>
+              <Button
+                variant="outline"
+                onClick={handleCivicLogin}
+                disabled={isCivicLoading || isUserLoading}
+              >
+                {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -123,17 +138,23 @@ export function Navigation() {
                     <span className="text-sm font-medium">Theme</span>
                     <ThemeToggle />
                   </div>
-                  {/* Sign In Button for Mobile */}
-                  <Link href="/" passHref>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleCivicLogin}
-                      disabled={isCivicLoading || isUserLoading}
-                    >
-                      {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
+                  {/* Authentication Buttons for Mobile */}
+                  {user ? (
+                    <Button variant="outline" className="w-full" onClick={handleCivicLogout}>
+                      Sign Out
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href="/" passHref>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleCivicLogin}
+                        disabled={isCivicLoading || isUserLoading}
+                      >
+                        {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </SheetContent>

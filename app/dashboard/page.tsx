@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import XDCpayment from "@/components/custom/XDCpayment"
 import {
   Clock,
   DollarSign,
@@ -199,208 +200,107 @@ export default function DashboardPage() {
           ))}
         </motion.div>
 
-        {/* Main Content */}
+        {/* Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 lg:w-96">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 md:w-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="tasks">Tasks</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings</TabsTrigger>
+              <TabsTrigger value="tasks">My Tasks</TabsTrigger>
+              <TabsTrigger value="payment">XDC Payment</TabsTrigger>
             </TabsList>
-
             <TabsContent value="overview" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Tasks */}
-                <Card className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Clock className="mr-2 h-5 w-5" />
-                      Recent Tasks
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {tasks.slice(0, 3).map((task) => (
-                        <div key={task.id} className="flex items-center justify-between p-4 bg-background rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{task.title}</h4>
-                            <p className="text-sm text-muted-foreground">{task.client}</p>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
-                              <span className="text-xs text-muted-foreground">Due {task.deadline}</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-apple-green">${task.budget}</p>
-                            <Progress value={task.progress} className="w-20 mt-2" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Earnings Chart */}
-                <Card className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <TrendingUp className="mr-2 h-5 w-5" />
-                      Earnings Overview
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">This Month</span>
-                        <span className="font-semibold text-apple-green">$3,200</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Last Month</span>
-                        <span className="font-semibold">$2,800</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Pending</span>
-                        <span className="font-semibold text-apple-orange">$1,500</span>
-                      </div>
-                      <div className="pt-4 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Total Earned</span>
-                          <span className="text-xl font-bold text-apple-green">$12,450</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="tasks" className="mt-6">
+              {/* Recent Activity */}
               <Card className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>All Tasks</CardTitle>
+                  <CardTitle>Recent Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {tasks.map((task) => (
-                      <div key={task.id} className="p-6 bg-background rounded-lg border">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold mb-2">{task.title}</h3>
-                            <p className="text-muted-foreground mb-2">Client: {task.client}</p>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <div className="flex items-center">
-                                <Calendar className="mr-1 h-4 w-4" />
-                                Due {task.deadline}
-                              </div>
-                              <div className="flex items-center">
-                                <DollarSign className="mr-1 h-4 w-4" />${task.budget}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
-                            <p className={`text-sm mt-2 ${getEscrowColor(task.escrowStatus)}`}>
-                              Escrow: {task.escrowStatus}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Progress</span>
-                            <span>{task.progress}%</span>
-                          </div>
-                          <Progress value={task.progress} />
-                        </div>
-
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Message Client
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </Button>
-                          {task.status === "Completed" && (
-                            <Button variant="outline" size="sm">
-                              <Download className="mr-2 h-4 w-4" />
-                              Download Invoice
-                            </Button>
-                          )}
+                  <ul className="space-y-4">
+                    <li className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle className="h-5 w-5 text-apple-green" />
+                        <div>
+                          <p className="font-medium">Completed task: Design Mobile App Interface</p>
+                          <p className="text-sm text-muted-foreground">Received $800</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-sm text-muted-foreground">2 hours ago</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <DollarSign className="h-5 w-5 text-apple-blue" />
+                        <div>
+                          <p className="font-medium">Funds deposited for: Build React Dashboard</p>
+                          <p className="text-sm text-muted-foreground">$1200 in escrow</p>
+                        </div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">1 day ago</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <AlertCircle className="h-5 w-5 text-apple-orange" />
+                        <div>
+                          <p className="font-medium">New message from: TechCorp Inc.</p>
+                          <p className="text-sm text-muted-foreground">Regarding project updates</p>
+                        </div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">3 days ago</span>
+                    </li>
+                  </ul>
                 </CardContent>
               </Card>
             </TabsContent>
-
-            <TabsContent value="earnings" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="border-0 shadow-apple bg-card/50 backdrop-blur-sm lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle>Earnings History</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {tasks
-                        .filter((task) => task.status === "Completed")
-                        .map((task) => (
-                          <div key={task.id} className="flex items-center justify-between p-4 bg-background rounded-lg">
-                            <div>
-                              <h4 className="font-medium">{task.title}</h4>
-                              <p className="text-sm text-muted-foreground">{task.client}</p>
-                              <p className="text-xs text-muted-foreground">Completed {task.deadline}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-apple-green">+${task.budget}</p>
-                              <p className="text-xs text-muted-foreground">XDC Network</p>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle>Payment Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-apple-green/10 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Available</span>
-                          <CheckCircle className="h-4 w-4 text-apple-green" />
+            <TabsContent value="tasks" className="mt-6">
+              {/* My Tasks */}
+              <div className="space-y-6">
+                {tasks.map((task) => (
+                  <Card key={task.id} className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-xl font-semibold mb-1">{task.title}</h3>
+                          <p className="text-muted-foreground text-sm">Client: {task.client}</p>
                         </div>
-                        <p className="text-2xl font-bold text-apple-green">$8,950</p>
+                        <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
                       </div>
-
-                      <div className="p-4 bg-apple-orange/10 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">In Escrow</span>
-                          <AlertCircle className="h-4 w-4 text-apple-orange" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                        <div>
+                          <p className="text-muted-foreground">Budget:</p>
+                          <p className="font-medium">${task.budget}</p>
                         </div>
-                        <p className="text-2xl font-bold text-apple-orange">$2,000</p>
-                      </div>
-
-                      <div className="p-4 bg-apple-blue/10 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Pending</span>
-                          <Clock className="h-4 w-4 text-apple-blue" />
+                        <div>
+                          <p className="text-muted-foreground">Deadline:</p>
+                          <p className="font-medium">{task.deadline}</p>
                         </div>
-                        <p className="text-2xl font-bold text-apple-blue">$1,500</p>
+                        <div>
+                          <p className="text-muted-foreground">Escrow Status:</p>
+                          <p className={`font-medium ${getEscrowColor(task.escrowStatus)}`}>{task.escrowStatus}</p>
+                        </div>
                       </div>
-
-                      <Button className="w-full bg-apple-green hover:bg-apple-green/90">Withdraw Funds</Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="mb-4">
+                        <p className="text-muted-foreground mb-2">Progress:</p>
+                        <Progress value={task.progress} className="w-full" />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" /> View Details
+                        </Button>
+                        <Button size="sm">
+                          <Download className="h-4 w-4 mr-2" /> Submit Work
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+            <TabsContent value="payment" className="mt-6">
+              <div className="flex justify-center">
+                <XDCpayment />
               </div>
             </TabsContent>
           </Tabs>

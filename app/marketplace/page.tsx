@@ -13,6 +13,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Search, SlidersHorizontal, Loader2 } from "lucide-react"
 import { useUser } from "@civic/auth-web3/react"
 import { useToast } from "@/hooks/use-toast"
+import XDCpayment from "@/components/custom/XDCpayment"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs"
 
 const categories = ["All", "Design", "Development", "Writing", "Blockchain", "Video", "Marketing", "Audio", "Business", "Data", "Translation"]
 
@@ -198,148 +200,93 @@ export default function MarketplacePage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search tasks, skills, or keywords..."
+                    className="pl-10 pr-4 py-2 rounded-lg bg-background border-0 shadow-sm focus-visible:ring-1 focus-visible:ring-apple-blue"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-12"
                   />
                 </div>
 
-                {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full lg:w-48 h-12">
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Sort by" />
+                {/* Category Filter */}
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-full lg:w-[180px] bg-background border-0 shadow-sm focus:ring-1 focus:ring-apple-blue">
+                    <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="highest-reward">Highest Reward</SelectItem>
-                    <SelectItem value="lowest-reward">Lowest Reward</SelectItem>
-                    <SelectItem value="most-applicants">Most Applicants</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
 
-              {/* Category Filters */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                {categories.map((category) => (
-                  <Badge
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    className={`cursor-pointer transition-all hover:scale-105 ${
-                      selectedCategory === category
-                        ? "bg-apple-blue hover:bg-apple-blue/90"
-                        : "hover:bg-apple-blue/10 hover:text-apple-blue hover:border-apple-blue"
-                    }`}
-                    onClick={() => setSelectedCategory(category)}
-                  >
-                    {category}
-                  </Badge>
-                ))}
+                {/* Sort By */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full lg:w-[180px] bg-background border-0 shadow-sm focus:ring-1 focus:ring-apple-blue">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="reward-high-to-low">Reward: High to Low</SelectItem>
+                    <SelectItem value="reward-low-to-high">Reward: Low to High</SelectItem>
+                    <SelectItem value="deadline">Deadline</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" className="w-full lg:w-auto bg-background border-0 shadow-sm">
+                  <SlidersHorizontal className="h-4 w-4 mr-2" /> More Filters
+                </Button>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Results Count */}
+        {/* Task List or Payment Component */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <p className="text-sm text-muted-foreground">
-            Showing {tasks.length} of {pagination.total} tasks
-          </p>
+          <Tabs defaultValue="tasks" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 md:w-auto">
+              <TabsTrigger value="tasks">Browse Tasks</TabsTrigger>
+              <TabsTrigger value="payment">Make Payment</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tasks" className="mt-6">
+              {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+              {loading && tasks.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-8 w-8 animate-spin text-apple-blue" />
+                  <p className="ml-2 text-muted-foreground">Loading tasks...</p>
+                </div>
+              ) : tasks.length === 0 ? (
+                <p className="text-center text-muted-foreground">No tasks found matching your criteria.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {tasks.map((task) => (
+                    <TaskCard key={task._id} task={task} index={0} />
+                  ))}
+                </div>
+              )}
+              {pagination.page < pagination.pages && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    onClick={handleLoadMore}
+                    disabled={loading}
+                    className="bg-apple-blue hover:bg-apple-blue/90 text-white"
+                  >
+                    {loading ? 'Loading More...' : 'Load More'}
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="payment" className="mt-6">
+              <div className="flex justify-center">
+                <XDCpayment />
+              </div>
+            </TabsContent>
+          </Tabs>
         </motion.div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <p>Loading tasks...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && !loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center py-12"
-          >
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-                <Search className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Error Loading Tasks</h3>
-              <p className="text-muted-foreground mb-6">{error}</p>
-              <Button onClick={() => fetchTasks(1)} variant="outline">
-                Try Again
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Task Grid */}
-        {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tasks.map((task, index) => (
-              <TaskCard key={task._id} task={task} index={index} />
-            ))}
-          </div>
-        )}
-
-        {/* Load More */}
-        {!loading && !error && tasks.length > 0 && pagination.page < pagination.pages && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="mt-12 text-center"
-          >
-            <Button
-              onClick={handleLoadMore}
-              variant="outline"
-              size="lg"
-              className="hover:bg-apple-blue/10 hover:text-apple-blue hover:border-apple-blue"
-            >
-              Load More Tasks
-            </Button>
-          </motion.div>
-        )}
-
-        {/* No Results */}
-        {!loading && !error && tasks.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center py-12"
-          >
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <Search className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
-              <p className="text-muted-foreground mb-6">
-                Try adjusting your search criteria or browse different categories
-              </p>
-              <Button
-                onClick={() => {
-                  setSearchQuery("")
-                  setSelectedCategory("All")
-                }}
-                variant="outline"
-              >
-                Clear Filters
-              </Button>
-            </div>
-          </motion.div>
-        )}
       </div>
     </div>
   )

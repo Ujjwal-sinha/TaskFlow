@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
@@ -72,9 +71,26 @@ const skills = [
   "Smart Contracts",
 ]
 
+interface FormData {
+  title: string;
+  description: string;
+  category: string;
+  skills: string[];
+  budget: string;
+  timeline: string;
+  files: File[];
+}
+
+interface AISuggestions {
+  suggestions?: string[];
+  estimatedBudget?: { min: string; max: string };
+  estimatedDuration?: string;
+}
+
 export default function PostTaskPage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -93,101 +109,184 @@ export default function PostTaskPage() {
     );
   }
 
-  const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState({
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
     category: "",
-    skills: [] as string[],
+    skills: [],
     budget: "",
     timeline: "",
-    files: [] as File[],
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<any>(null)
-  const [loadingAI, setLoadingAI] = useState(false)
-  const { toast } = useToast()
+    files: [],
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestions | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [platformFee, setPlatformFee] = useState(0.05); // Default 5%
 
-  const progress = (currentStep / steps.length) * 100
+  const progress = (currentStep / steps.length) * 100;
+
+  // Validate current step for enabling/disabling Next button
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.title.trim() && formData.description.trim() && formData.category;
+      case 2:
+        return true; // Skills and files are optional
+      case 3:
+        return formData.budget && Number(formData.budget) > 0 && formData.timeline;
+      default:
+        return true;
+    }
+  };
 
   // Get AI suggestions for task requirements
   const getAISuggestions = async () => {
     if (!formData.title || !formData.description || !formData.category) return;
 
     try {
-      setLoadingAI(true)
+      setLoadingAI(true);
       const params = new URLSearchParams({
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        skills: formData.skills.join(',')
-      })
+        skills: formData.skills.join(','),
+      });
 
-      const response = await fetch(`/api/ai-suggestions/analyze?${params}`)
-      if (response.ok) {
-        const suggestions = await response.json()
-        setAiSuggestions(suggestions)
+      const response = await fetch(`/api/ai-suggestions/analyze?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI suggestions');
       }
+      const suggestions = await response.json();
+      setAiSuggestions(suggestions);
     } catch (error) {
-      console.error('Error getting AI suggestions:', error)
+      console.error('Error getting AI suggestions:', error);
+      toast({
+        title: "AI Suggestions Error",
+        description: "Failed to load AI suggestions. Please proceed without them.",
+        variant: "destructive",
+      });
     } finally {
-      setLoadingAI(false)
+      setLoadingAI(false);
     }
-  }
+  };
 
-  // Trigger AI suggestions when moving to budget step
+  // Trigger AI suggestions when on step 3 or when relevant fields change
   useEffect(() => {
     if (currentStep === 3 && formData.title && formData.description && formData.category) {
-      getAISuggestions()
+      getAISuggestions();
     }
-  }, [currentStep, formData.title, formData.description, formData.category])
+  }, [currentStep, formData.title, formData.description, formData.category, formData.skills]);
+
+  // Fetch platform fee (mocked here; replace with actual API call if available)
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        // Example: const response = await fetch('/api/config');
+        // const data = await response.json();
+        // setPlatformFee(data.platformFee);
+        setPlatformFee(0.05); // Mocked for now
+      } catch (error) {
+        console.error('Error fetching platform fee:', error);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   const handleNext = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
+    if (currentStep < steps.length && isStepValid()) {
+      setCurrentStep(currentStep + 1);
     }
-  }
+  };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   const handleSkillToggle = (skill: string) => {
     setFormData((prev) => ({
       ...prev,
       skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
-    }))
-  }
+    }));
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || [])
+    const files = Array.from(event.target.files || []);
+    const validFiles = files.filter((file) => {
+      const isValidType = ['application/pdf', 'image/jpeg', 'image/png'].includes(file.type);
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+      if (!isValidType) {
+        toast({
+          title: "Invalid File Type",
+          description: `${file.name} is not a supported file type (PDF, JPEG, PNG only).`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!isValidSize) {
+        toast({
+          title: "File Too Large",
+          description: `${file.name} exceeds the 5MB limit.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
     setFormData((prev) => ({
       ...prev,
-      files: [...prev.files, ...files],
-    }))
-  }
+      files: [...prev.files, ...validFiles],
+    }));
+  };
 
   const removeFile = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index),
-    }))
-  }
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      category: "",
+      skills: [],
+      budget: "",
+      timeline: "",
+      files: [],
+    });
+    setCurrentStep(1);
+    setAiSuggestions(null);
+    toast({
+      title: "Form Reset",
+      description: "The form has been reset.",
+    });
+  };
 
   const handleSubmit = async () => {
     try {
-      setIsSubmitting(true)
+      setIsSubmitting(true);
 
       // Validate required fields
       if (!formData.title || !formData.description || !formData.category || !formData.budget || !formData.timeline) {
         toast({
           title: "Missing Information",
           description: "Please fill in all required fields.",
-          variant: "destructive"
-        })
-        return
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (Number(formData.budget) <= 0) {
+        toast({
+          title: "Invalid Budget",
+          description: "Budget must be a positive number.",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Prepare task data
@@ -201,8 +300,8 @@ export default function PostTaskPage() {
         clientId: user.id || user.walletAddress,
         clientName: user.name || user.displayName || 'Anonymous User',
         clientAvatar: user.avatar || '/placeholder-user.jpg',
-        clientRating: 0 // New users start with 0 rating
-      }
+        clientRating: 0, // New users start with 0 rating
+      };
 
       // Submit task to API
       const response = await fetch('/api/tasks', {
@@ -210,41 +309,41 @@ export default function PostTaskPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(taskData)
-      })
+        body: JSON.stringify(taskData),
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create task')
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create task');
       }
-
-      const result = await response.json()
 
       toast({
         title: "Task Posted Successfully!",
-        description: "Your task has been posted to the marketplace and AI suggestions are being generated.",
-      })
+        description: "Your task has been posted to the marketplace.",
+      });
 
-      // Redirect to marketplace or task detail page
-      router.push('/marketplace')
-
+      // Redirect to marketplace
+      router.push('/marketplace');
     } catch (error) {
-      console.error('Error submitting task:', error)
+      console.error('Error submitting task:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to post task. Please try again.",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
           <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
             <div>
@@ -255,9 +354,10 @@ export default function PostTaskPage() {
                 id="title"
                 placeholder="e.g., Design a modern landing page for my SaaS product"
                 value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value.trim() }))}
                 className="mt-2 h-12"
                 required
+                aria-required="true"
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Write a clear, descriptive title that explains what you need
@@ -272,9 +372,10 @@ export default function PostTaskPage() {
                 id="description"
                 placeholder="Describe your project in detail. Include requirements, expectations, and any specific instructions..."
                 value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value.trim() }))}
                 className="mt-2 min-h-32"
                 required
+                aria-required="true"
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Provide detailed information to help freelancers understand your needs
@@ -287,8 +388,9 @@ export default function PostTaskPage() {
                 value={formData.category}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
                 required
+                aria-required="true"
               >
-                <SelectTrigger className="mt-2 h-12">
+                <SelectTrigger className="mt-2 h-12" aria-label="Select a category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -301,7 +403,7 @@ export default function PostTaskPage() {
               </Select>
             </div>
           </motion.div>
-        )
+        );
 
       case 2:
         return (
@@ -327,6 +429,9 @@ export default function PostTaskPage() {
                         : "hover:bg-apple-blue/10 hover:text-apple-blue hover:border-apple-blue"
                     }`}
                     onClick={() => handleSkillToggle(skill)}
+                    role="button"
+                    aria-pressed={formData.skills.includes(skill)}
+                    aria-label={`Toggle ${skill} skill`}
                   >
                     {skill}
                   </Badge>
@@ -342,6 +447,7 @@ export default function PostTaskPage() {
                         <X
                           className="ml-1 h-3 w-3 cursor-pointer"
                           onClick={() => handleSkillToggle(skill)}
+                          aria-label={`Remove ${skill} skill`}
                         />
                       </Badge>
                     ))}
@@ -355,14 +461,16 @@ export default function PostTaskPage() {
               <div className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center">
                 <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Upload files to help explain your project
+                  Upload files to help explain your project (PDF, JPEG, PNG; max 5MB)
                 </p>
                 <Input
                   type="file"
                   multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleFileUpload}
                   className="hidden"
                   id="file-upload"
+                  aria-label="Upload files"
                 />
                 <Label htmlFor="file-upload" className="cursor-pointer">
                   <Button variant="outline" size="sm" asChild>
@@ -383,6 +491,7 @@ export default function PostTaskPage() {
                           size="sm"
                           onClick={() => removeFile(index)}
                           className="h-6 w-6 p-0"
+                          aria-label={`Remove ${file.name}`}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -393,7 +502,7 @@ export default function PostTaskPage() {
               )}
             </div>
           </motion.div>
-        )
+        );
 
       case 3:
         return (
@@ -403,7 +512,6 @@ export default function PostTaskPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            {/* AI Suggestions */}
             {(loadingAI || aiSuggestions) && (
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
                 <div className="flex items-center mb-2">
@@ -418,7 +526,7 @@ export default function PostTaskPage() {
                   </div>
                 ) : aiSuggestions ? (
                   <div className="space-y-3">
-                    {aiSuggestions.suggestions?.length > 0 && (
+                    {aiSuggestions?.suggestions && aiSuggestions.suggestions.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-purple-800 mb-1">Suggestions:</p>
                         <ul className="text-sm text-purple-700 space-y-1">
@@ -448,7 +556,7 @@ export default function PostTaskPage() {
                       </div>
                     )}
                   </div>
-                )}
+                ) : null}
               </div>
             )}
 
@@ -459,11 +567,13 @@ export default function PostTaskPage() {
               <Input
                 id="budget"
                 type="number"
+                min="1"
                 placeholder="e.g., 500"
                 value={formData.budget}
                 onChange={(e) => setFormData((prev) => ({ ...prev, budget: e.target.value }))}
                 className="mt-2 h-12"
                 required
+                aria-required="true"
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Set a competitive budget to attract quality freelancers
@@ -476,8 +586,9 @@ export default function PostTaskPage() {
                 value={formData.timeline}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, timeline: value }))}
                 required
+                aria-required="true"
               >
-                <SelectTrigger className="mt-2 h-12">
+                <SelectTrigger className="mt-2 h-12" aria-label="Select timeline">
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
@@ -499,19 +610,19 @@ export default function PostTaskPage() {
                   <span className="font-medium">{formData.budget || "0"} XDC</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Platform Fee (5%):</span>
+                  <span>Platform Fee ({platformFee * 100}%):</span>
                   <span className="font-medium">
-                    {formData.budget ? (Number(formData.budget) * 0.05).toFixed(2) : "0"} XDC
+                    {formData.budget ? (Number(formData.budget) * platformFee).toFixed(2) : "0"} XDC
                   </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-semibold">
                   <span>Total Cost:</span>
-                  <span>{formData.budget ? (Number(formData.budget) * 1.05).toFixed(2) : "0"} XDC</span>
+                  <span>{formData.budget ? (Number(formData.budget) * (1 + platformFee)).toFixed(2) : "0"} XDC</span>
                 </div>
               </div>
             </div>
           </motion.div>
-        )
+        );
 
       case 4:
         return (
@@ -569,15 +680,15 @@ export default function PostTaskPage() {
               </p>
             </div>
           </motion.div>
-        )
+        );
 
       default:
-        return null
+        return null;
     }
-  }
+  };
 
-  const CurrentStepIcon = steps[currentStep - 1].icon
-  const currentStepTitle = steps[currentStep - 1].title
+  const CurrentStepIcon = steps[currentStep - 1].icon;
+  const currentStepTitle = steps[currentStep - 1].title;
 
   return (
     <div className="min-h-screen bg-background">
@@ -611,6 +722,7 @@ export default function PostTaskPage() {
                       ? "bg-apple-blue border-apple-blue text-white"
                       : "border-muted-foreground/30 text-muted-foreground"
                   }`}
+                  aria-current={currentStep === step.id ? "step" : undefined}
                 >
                   <step.icon className="h-5 w-5" />
                 </div>
@@ -652,30 +764,44 @@ export default function PostTaskPage() {
 
               {/* Navigation */}
               <div className="flex justify-between mt-8 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1 || isSubmitting}
-                  className="flex items-center"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous
-                </Button>
+                <div className="flex space-x-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 1 || isSubmitting}
+                    className="flex items-center"
+                    aria-label="Previous step"
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={resetForm}
+                    disabled={isSubmitting}
+                    className="text-muted-foreground"
+                    aria-label="Reset form"
+                  >
+                    Reset Form
+                  </Button>
+                </div>
 
                 {currentStep < steps.length ? (
-                  <Button 
-                    onClick={handleNext} 
-                    disabled={isSubmitting}
+                  <Button
+                    onClick={handleNext}
+                    disabled={isSubmitting || !isStepValid()}
                     className="bg-apple-blue hover:bg-apple-blue/90 flex items-center"
+                    aria-label="Next step"
                   >
                     Next
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button 
-                    onClick={handleSubmit} 
+                  <Button
+                    onClick={handleSubmit}
                     disabled={isSubmitting}
                     className="bg-apple-green hover:bg-apple-green/90 flex items-center"
+                    aria-label="Post task"
                   >
                     {isSubmitting ? (
                       <>
@@ -696,5 +822,5 @@ export default function PostTaskPage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }

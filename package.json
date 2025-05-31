@@ -12,6 +12,8 @@
   "dependencies": {
     "@civic/auth": "^0.6.0",
     "@civic/auth-web3": "^0.5.10",
+    "@elizaos/client-direct": "^0.1.7",
+    "@elizaos/core": "^0.1.7",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.9.1",
     "@langchain/core": "^0.3.57",
@@ -54,9 +56,10 @@
     "langchain": "^0.3.27",
     "lucide-react": "^0.454.0",
     "mongodb": "^6.3.0",
-    "mongoose": "^8.1.1",
+    "mongoose": "^8.15.1",
     "next": "15.2.4",
     "next-themes": "latest",
+    "openai": "^4.28.0",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
@@ -67,10 +70,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
-    "zod": "^3.24.1",
-    "@elizaos/core": "^0.1.7",
-    "@elizaos/client-direct": "^0.1.7",
-    "openai": "^4.28.0"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22",

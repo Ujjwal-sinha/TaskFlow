@@ -10,126 +10,37 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, SlidersHorizontal } from "lucide-react"
+import { Search, SlidersHorizontal, Loader2 } from "lucide-react"
 import { useUser } from "@civic/auth-web3/react"
+import { useToast } from "@/hooks/use-toast"
 
-// Mock data
-const mockTasks = [
-  {
-    id: "1",
-    title: "Design a Modern Landing Page for SaaS Product",
-    description:
-      "Looking for a talented UI/UX designer to create a modern, conversion-focused landing page for our new SaaS product. Must be responsive and follow current design trends.",
-    category: "Design",
-    reward: 500,
-    currency: "XDC",
-    deadline: "in 5 days",
-    location: "Remote",
-    client: {
-      name: "TechCorp Inc.",
-      avatar: "/placeholder-user.jpg",
-      rating: 4.8,
-    },
-    applicants: 12,
-    tags: ["UI/UX", "Figma", "Web Design", "Landing Page"],
-  },
-  {
-    id: "2",
-    title: "Full-Stack Web Application Development",
-    description:
-      "Need an experienced developer to build a full-stack web application with React, Node.js, and PostgreSQL. Project includes user authentication, dashboard, and API integration.",
-    category: "Development",
-    reward: 1200,
-    currency: "XDC",
-    deadline: "in 2 weeks",
-    location: "Remote",
-    client: {
-      name: "StartupXYZ",
-      avatar: "/placeholder-user.jpg",
-      rating: 4.9,
-    },
-    applicants: 8,
-    tags: ["React", "Node.js", "PostgreSQL", "Full-Stack"],
-  },
-  {
-    id: "3",
-    title: "Content Writing for Tech Blog",
-    description:
-      "Seeking a skilled content writer to create engaging blog posts about emerging technologies, AI, and blockchain. Must have technical writing experience.",
-    category: "Writing",
-    reward: 200,
-    currency: "XDC",
-    deadline: "in 1 week",
-    location: "Remote",
-    client: {
-      name: "TechBlog Pro",
-      avatar: "/placeholder-user.jpg",
-      rating: 4.7,
-    },
-    applicants: 15,
-    tags: ["Content Writing", "Tech", "Blog", "SEO"],
-  },
-  {
-    id: "4",
-    title: "Mobile App UI/UX Design",
-    description:
-      "Design a complete mobile app interface for iOS and Android. The app is a fitness tracker with social features. Need wireframes, mockups, and prototypes.",
-    category: "Design",
-    reward: 800,
-    currency: "XDC",
-    deadline: "in 10 days",
-    location: "Remote",
-    client: {
-      name: "FitLife Apps",
-      avatar: "/placeholder-user.jpg",
-      rating: 4.6,
-    },
-    applicants: 20,
-    tags: ["Mobile Design", "iOS", "Android", "Prototyping"],
-  },
-  {
-    id: "5",
-    title: "Smart Contract Development",
-    description:
-      "Looking for a blockchain developer to create smart contracts for a DeFi protocol. Experience with Solidity and Web3 technologies required.",
-    category: "Blockchain",
-    reward: 2000,
-    currency: "XDC",
-    deadline: "in 3 weeks",
-    location: "Remote",
-    client: {
-      name: "DeFi Innovations",
-      avatar: "/placeholder-user.jpg",
-      rating: 5.0,
-    },
-    applicants: 5,
-    tags: ["Solidity", "Smart Contracts", "DeFi", "Web3"],
-  },
-  {
-    id: "6",
-    title: "Video Editing for YouTube Channel",
-    description:
-      "Edit weekly videos for a tech YouTube channel. Need someone who can create engaging content with motion graphics, transitions, and color grading.",
-    category: "Video",
-    reward: 300,
-    currency: "XDC",
-    deadline: "in 3 days",
-    location: "Remote",
-    client: {
-      name: "TechTuber",
-      avatar: "/placeholder-user.jpg",
-      rating: 4.5,
-    },
-    applicants: 18,
-    tags: ["Video Editing", "Motion Graphics", "YouTube", "After Effects"],
-  },
-]
+const categories = ["All", "Design", "Development", "Writing", "Blockchain", "Video", "Marketing", "Audio", "Business", "Data", "Translation"]
 
-const categories = ["All", "Design", "Development", "Writing", "Blockchain", "Video", "Marketing"]
+interface Task {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  reward: number;
+  currency: string;
+  deadline: string;
+  location: string;
+  client: {
+    id: string;
+    name: string;
+    avatar: string;
+    rating: number;
+  };
+  applicants: number;
+  tags: string[];
+  status: string;
+  createdAt: string;
+}
 
 export default function MarketplacePage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -140,7 +51,10 @@ export default function MarketplacePage() {
   if (isLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Loading or redirecting...</p>
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
@@ -148,17 +62,110 @@ export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [sortBy, setSortBy] = useState("newest")
-
-  const filteredTasks = mockTasks.filter((task) => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-
-    const matchesCategory = selectedCategory === "All" || task.category === selectedCategory
-
-    return matchesSearch && matchesCategory
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    pages: 0
   })
+
+  // Fetch tasks from API
+  const fetchTasks = async (page = 1) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+        sortBy
+      })
+
+      if (selectedCategory !== "All") {
+        params.append('category', selectedCategory)
+      }
+
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim())
+      }
+
+      const response = await fetch(`/api/tasks?${params}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks')
+      }
+
+      const data = await response.json()
+      
+      // Transform deadline to relative format
+      const transformedTasks = data.tasks.map((task: any) => ({
+        ...task,
+        deadline: formatDeadline(task.deadline)
+      }))
+
+      setTasks(transformedTasks)
+      setPagination(data.pagination)
+    } catch (err) {
+      console.error('Error fetching tasks:', err)
+      setError('Failed to load tasks. Please try again.')
+      toast({
+        title: "Error",
+        description: "Failed to load tasks. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Format deadline to relative time
+  const formatDeadline = (deadline: string) => {
+    const deadlineDate = new Date(deadline)
+    const now = new Date()
+    const diffTime = deadlineDate.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0) {
+      return 'Expired'
+    } else if (diffDays === 0) {
+      return 'Today'
+    } else if (diffDays === 1) {
+      return 'Tomorrow'
+    } else if (diffDays < 7) {
+      return `in ${diffDays} days`
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7)
+      return `in ${weeks} week${weeks > 1 ? 's' : ''}`
+    } else {
+      const months = Math.floor(diffDays / 30)
+      return `in ${months} month${months > 1 ? 's' : ''}`
+    }
+  }
+
+  // Fetch tasks on component mount and when filters change
+  useEffect(() => {
+    fetchTasks(1)
+  }, [selectedCategory, sortBy])
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery !== undefined) {
+        fetchTasks(1)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const handleLoadMore = () => {
+    if (pagination.page < pagination.pages) {
+      fetchTasks(pagination.page + 1)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -242,19 +249,52 @@ export default function MarketplacePage() {
           className="mb-6"
         >
           <p className="text-sm text-muted-foreground">
-            Showing {filteredTasks.length} of {mockTasks.length} tasks
+            Showing {tasks.length} of {pagination.total} tasks
           </p>
         </motion.div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="flex items-center space-x-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p>Loading tasks...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center py-12"
+          >
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                <Search className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Error Loading Tasks</h3>
+              <p className="text-muted-foreground mb-6">{error}</p>
+              <Button onClick={() => fetchTasks(1)} variant="outline">
+                Try Again
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Task Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTasks.map((task, index) => (
-            <TaskCard key={task.id} task={task} index={index} />
-          ))}
-        </div>
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tasks.map((task, index) => (
+              <TaskCard key={task._id} task={task} index={index} />
+            ))}
+          </div>
+        )}
 
         {/* Load More */}
-        {filteredTasks.length > 0 && (
+        {!loading && !error && tasks.length > 0 && pagination.page < pagination.pages && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -262,6 +302,7 @@ export default function MarketplacePage() {
             className="mt-12 text-center"
           >
             <Button
+              onClick={handleLoadMore}
               variant="outline"
               size="lg"
               className="hover:bg-apple-blue/10 hover:text-apple-blue hover:border-apple-blue"
@@ -272,7 +313,7 @@ export default function MarketplacePage() {
         )}
 
         {/* No Results */}
-        {filteredTasks.length === 0 && (
+        {!loading && !error && tasks.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

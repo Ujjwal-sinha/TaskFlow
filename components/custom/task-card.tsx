@@ -9,7 +9,7 @@ import { Clock, MapPin, Star, Users } from "lucide-react"
 
 interface TaskCardProps {
   task: {
-    id: string
+    _id: string
     title: string
     description: string
     category: string
@@ -18,12 +18,15 @@ interface TaskCardProps {
     deadline: string
     location: string
     client: {
+      id?: string
       name: string
       avatar: string
       rating: number
     }
     applicants: number
     tags: string[]
+    status?: string
+    createdAt?: string
   }
   index: number
 }
@@ -95,7 +98,7 @@ export function TaskCard({ task, index }: TaskCardProps) {
                 <span className="text-xs font-medium">{task.client.name}</span>
                 <div className="flex items-center">
                   <Star className="h-3 w-3 fill-apple-yellow text-apple-yellow" />
-                  <span className="text-xs text-muted-foreground ml-1">{task.client.rating}</span>
+                  <span className="text-xs text-muted-foreground ml-1">{task.client.rating.toFixed(1)}</span>
                 </div>
               </div>
             </div>

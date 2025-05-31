@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ChevronLeft, ChevronRight, Upload, X, FileText, DollarSign, Calendar, Tag, Eye } from "lucide-react"
+import { ChevronLeft, ChevronRight, Upload, X, FileText, DollarSign, Calendar, Tag, Eye, Loader2, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@civic/auth-web3/react"
 
@@ -27,7 +27,7 @@ const steps = [
 
 const categories = [
   "Design",
-  "Development",
+  "Development", 
   "Writing",
   "Marketing",
   "Video",
@@ -35,13 +35,14 @@ const categories = [
   "Business",
   "Data",
   "Translation",
+  "Blockchain",
   "Other",
 ]
 
 const skills = [
   "React",
   "Vue.js",
-  "Angular",
+  "Angular", 
   "Node.js",
   "Python",
   "Java",
@@ -84,7 +85,10 @@ export default function PostTaskPage() {
   if (isLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Loading or redirecting...</p>
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
@@ -99,9 +103,44 @@ export default function PostTaskPage() {
     timeline: "",
     files: [] as File[],
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null)
+  const [loadingAI, setLoadingAI] = useState(false)
   const { toast } = useToast()
 
   const progress = (currentStep / steps.length) * 100
+
+  // Get AI suggestions for task requirements
+  const getAISuggestions = async () => {
+    if (!formData.title || !formData.description || !formData.category) return;
+
+    try {
+      setLoadingAI(true)
+      const params = new URLSearchParams({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        skills: formData.skills.join(',')
+      })
+
+      const response = await fetch(`/api/ai-suggestions/analyze?${params}`)
+      if (response.ok) {
+        const suggestions = await response.json()
+        setAiSuggestions(suggestions)
+      }
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error)
+    } finally {
+      setLoadingAI(false)
+    }
+  }
+
+  // Trigger AI suggestions when moving to budget step
+  useEffect(() => {
+    if (currentStep === 3 && formData.title && formData.description && formData.category) {
+      getAISuggestions()
+    }
+  }, [currentStep, formData.title, formData.description, formData.category])
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -137,11 +176,68 @@ export default function PostTaskPage() {
     }))
   }
 
-  const handleSubmit = () => {
-    toast({
-      title: "Task Posted Successfully!",
-      description: "Your task has been posted to the marketplace.",
-    })
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true)
+
+      // Validate required fields
+      if (!formData.title || !formData.description || !formData.category || !formData.budget || !formData.timeline) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Prepare task data
+      const taskData = {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        skills: formData.skills,
+        budget: formData.budget,
+        timeline: formData.timeline,
+        clientId: user.id || user.walletAddress,
+        clientName: user.name || user.displayName || 'Anonymous User',
+        clientAvatar: user.avatar || '/placeholder-user.jpg',
+        clientRating: 0 // New users start with 0 rating
+      }
+
+      // Submit task to API
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData)
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create task')
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: "Task Posted Successfully!",
+        description: "Your task has been posted to the marketplace and AI suggestions are being generated.",
+      })
+
+      // Redirect to marketplace or task detail page
+      router.push('/marketplace')
+
+    } catch (error) {
+      console.error('Error submitting task:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to post task. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const renderStepContent = () => {
@@ -149,14 +245,11 @@ export default function PostTaskPage() {
       case 1:
         return (
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
             <div>
               <Label htmlFor="title" className="text-base font-medium">
-                Task Title
+                Task Title *
               </Label>
               <Input
                 id="title"
@@ -164,6 +257,7 @@ export default function PostTaskPage() {
                 value={formData.title}
                 onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                 className="mt-2 h-12"
+                required
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Write a clear, descriptive title that explains what you need
@@ -172,7 +266,7 @@ export default function PostTaskPage() {
 
             <div>
               <Label htmlFor="description" className="text-base font-medium">
-                Description
+                Description *
               </Label>
               <Textarea
                 id="description"
@@ -180,6 +274,7 @@ export default function PostTaskPage() {
                 value={formData.description}
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 className="mt-2 min-h-32"
+                required
               />
               <p className="text-sm text-muted-foreground mt-1">
                 Provide detailed information to help freelancers understand your needs
@@ -187,10 +282,11 @@ export default function PostTaskPage() {
             </div>
 
             <div>
-              <Label className="text-base font-medium">Category</Label>
+              <Label className="text-base font-medium">Category *</Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                required
               >
                 <SelectTrigger className="mt-2 h-12">
                   <SelectValue placeholder="Select a category" />
@@ -217,13 +313,15 @@ export default function PostTaskPage() {
           >
             <div>
               <Label className="text-base font-medium">Required Skills</Label>
-              <p className="text-sm text-muted-foreground mb-4">Select the skills needed for this task</p>
-              <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+              <p className="text-sm text-muted-foreground mb-4">
+                Select the skills needed for this task
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
                 {skills.map((skill) => (
                   <Badge
                     key={skill}
                     variant={formData.skills.includes(skill) ? "default" : "outline"}
-                    className={`cursor-pointer transition-all hover:scale-105 ${
+                    className={`cursor-pointer transition-all hover:scale-105 justify-center py-2 ${
                       formData.skills.includes(skill)
                         ? "bg-apple-blue hover:bg-apple-blue/90"
                         : "hover:bg-apple-blue/10 hover:text-apple-blue hover:border-apple-blue"
@@ -239,9 +337,12 @@ export default function PostTaskPage() {
                   <p className="text-sm font-medium mb-2">Selected Skills:</p>
                   <div className="flex flex-wrap gap-2">
                     {formData.skills.map((skill) => (
-                      <Badge key={skill} className="bg-apple-blue">
+                      <Badge key={skill} variant="default" className="bg-apple-blue">
                         {skill}
-                        <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => handleSkillToggle(skill)} />
+                        <X
+                          className="ml-1 h-3 w-3 cursor-pointer"
+                          onClick={() => handleSkillToggle(skill)}
+                        />
                       </Badge>
                     ))}
                   </div>
@@ -251,39 +352,43 @@ export default function PostTaskPage() {
 
             <div>
               <Label className="text-base font-medium">Attachments (Optional)</Label>
-              <p className="text-sm text-muted-foreground mb-4">Upload any relevant files, documents, or references</p>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-apple-blue/50 transition-colors">
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Click to upload files</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, PDF up to 10MB each</p>
-                </div>
-                <input
+              <div className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center">
+                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Upload files to help explain your project
+                </p>
+                <Input
                   type="file"
                   multiple
-                  accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
                   onChange={handleFileUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="hidden"
+                  id="file-upload"
                 />
+                <Label htmlFor="file-upload" className="cursor-pointer">
+                  <Button variant="outline" size="sm" asChild>
+                    <span>Choose Files</span>
+                  </Button>
+                </Label>
               </div>
 
               {formData.files.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-medium">Uploaded Files:</p>
-                  {formData.files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">Uploaded Files:</p>
+                  <div className="space-y-2">
+                    {formData.files.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
                         <span className="text-sm">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => removeFile(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -298,34 +403,81 @@ export default function PostTaskPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
+            {/* AI Suggestions */}
+            {(loadingAI || aiSuggestions) && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center mb-2">
+                  <Sparkles className="h-5 w-5 text-purple-600 mr-2" />
+                  <h3 className="font-semibold text-purple-800">AI Insights</h3>
+                </div>
+                
+                {loadingAI ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p className="text-sm text-purple-700">Analyzing your task requirements...</p>
+                  </div>
+                ) : aiSuggestions ? (
+                  <div className="space-y-3">
+                    {aiSuggestions.suggestions?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-purple-800 mb-1">Suggestions:</p>
+                        <ul className="text-sm text-purple-700 space-y-1">
+                          {aiSuggestions.suggestions.map((suggestion: string, index: number) => (
+                            <li key={index} className="flex items-start">
+                              <span className="mr-2">•</span>
+                              {suggestion}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {aiSuggestions.estimatedBudget && (
+                      <div>
+                        <p className="text-sm font-medium text-purple-800">
+                          Estimated Budget: {aiSuggestions.estimatedBudget.min} - {aiSuggestions.estimatedBudget.max} XDC
+                        </p>
+                      </div>
+                    )}
+                    
+                    {aiSuggestions.estimatedDuration && (
+                      <div>
+                        <p className="text-sm font-medium text-purple-800">
+                          Estimated Duration: {aiSuggestions.estimatedDuration}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <Label htmlFor="budget" className="text-base font-medium">
-                Budget (XDC)
+                Budget (XDC) *
               </Label>
-              <div className="relative mt-2">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="budget"
-                  type="number"
-                  placeholder="1000"
-                  value={formData.budget}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, budget: e.target.value }))}
-                  className="pl-10 h-12"
-                />
-              </div>
+              <Input
+                id="budget"
+                type="number"
+                placeholder="e.g., 500"
+                value={formData.budget}
+                onChange={(e) => setFormData((prev) => ({ ...prev, budget: e.target.value }))}
+                className="mt-2 h-12"
+                required
+              />
               <p className="text-sm text-muted-foreground mt-1">
-                Set a fair budget based on the complexity of your task
+                Set a competitive budget to attract quality freelancers
               </p>
             </div>
 
             <div>
-              <Label className="text-base font-medium">Timeline</Label>
+              <Label className="text-base font-medium">Timeline *</Label>
               <Select
                 value={formData.timeline}
                 onValueChange={(value) => setFormData((prev) => ({ ...prev, timeline: value }))}
+                required
               >
                 <SelectTrigger className="mt-2 h-12">
-                  <Calendar className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
@@ -413,7 +565,7 @@ export default function PostTaskPage() {
               <h4 className="font-semibold text-apple-blue mb-2">Ready to Post?</h4>
               <p className="text-sm text-muted-foreground">
                 Your task will be visible to thousands of qualified freelancers. You'll start receiving proposals within
-                minutes of posting.
+                minutes of posting. Our AI will also suggest the best-fit freelancers for your project.
               </p>
             </div>
           </motion.div>
@@ -460,7 +612,7 @@ export default function PostTaskPage() {
                       : "border-muted-foreground/30 text-muted-foreground"
                   }`}
                 >
-                  <CurrentStepIcon className="h-5 w-5" />
+                  <step.icon className="h-5 w-5" />
                 </div>
                 <div className="ml-3 hidden sm:block">
                   <p
@@ -503,7 +655,7 @@ export default function PostTaskPage() {
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
-                  disabled={currentStep === 1}
+                  disabled={currentStep === 1 || isSubmitting}
                   className="flex items-center"
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" />
@@ -511,14 +663,31 @@ export default function PostTaskPage() {
                 </Button>
 
                 {currentStep < steps.length ? (
-                  <Button onClick={handleNext} className="bg-apple-blue hover:bg-apple-blue/90 flex items-center">
+                  <Button 
+                    onClick={handleNext} 
+                    disabled={isSubmitting}
+                    className="bg-apple-blue hover:bg-apple-blue/90 flex items-center"
+                  >
                     Next
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit} className="bg-apple-green hover:bg-apple-green/90 flex items-center">
-                    Post Task
-                    <ChevronRight className="ml-2 h-4 w-4" />
+                  <Button 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting}
+                    className="bg-apple-green hover:bg-apple-green/90 flex items-center"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Posting...
+                      </>
+                    ) : (
+                      <>
+                        Post Task
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 )}
               </div>

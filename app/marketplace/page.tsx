@@ -42,6 +42,19 @@ export default function MarketplacePage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [sortBy, setSortBy] = useState("newest")
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    pages: 0
+  })
+
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/');
@@ -58,19 +71,6 @@ export default function MarketplacePage() {
       </div>
     );
   }
-
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All")
-  const [sortBy, setSortBy] = useState("newest")
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 12,
-    total: 0,
-    pages: 0
-  })
 
   // Fetch tasks from API
   const fetchTasks = async (page = 1) => {

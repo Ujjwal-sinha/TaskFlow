@@ -164,19 +164,11 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Reputation Score</p>
-                <div className="flex items-center space-x-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-apple-yellow text-apple-yellow" />
-                    ))}
-                  </div>
-                  <span className="font-semibold">4.9</span>
-                </div>
+                <p className="text-sm text-muted-foreground">Hello, {String(user.displayName || user.name || 'User')}!</p>
+                <p className="text-sm text-muted-foreground">{String(user.walletAddress || '')}</p>
               </div>
               <Avatar className="h-12 w-12">
-                <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                <AvatarFallback>JD</AvatarFallback>
+               
               </Avatar>
             </div>
           </div>

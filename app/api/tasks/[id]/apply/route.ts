@@ -54,6 +54,17 @@ export async function POST(
       )
     }
 
+    // Prevent task creator from applying to their own task
+    const isTaskCreator = task.client.id?.toLowerCase() === freelancerAddress.toLowerCase() ||
+                         task.client.address?.toLowerCase() === freelancerAddress.toLowerCase()
+    
+    if (isTaskCreator) {
+      return NextResponse.json(
+        { error: 'You cannot apply to your own task' },
+        { status: 400 }
+      )
+    }
+
     // Check if user already applied
     const existingApplication = task.applicants?.find(
       (app: any) => app.walletAddress?.toLowerCase() === freelancerAddress.toLowerCase()
@@ -79,7 +90,7 @@ export async function POST(
         avatar: freelancerAvatar || '/placeholder-user.jpg',
         role: 'freelancer',
         skills: [],
-        rating: freelancerRating || 4.0,
+        rating: freelancerRating || 0,
         totalJobs: 0,
         completedJobs: 0,
         isActive: true

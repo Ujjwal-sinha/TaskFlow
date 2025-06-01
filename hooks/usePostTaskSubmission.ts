@@ -55,8 +55,13 @@ export const usePostTaskSubmission = () => {
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
       
+      // Updated ABI to match your actual smart contract
       const contractABI = [
-        "function postTask(address _freelancer) payable returns (uint256)"
+        "function postTask(string memory _title, string memory _description) payable returns (uint256)",
+        "function assignTask(uint256 _taskId, address _freelancer)",
+        "function completeTask(uint256 _taskId)",
+        "function cancelTask(uint256 _taskId)",
+        "function getTask(uint256 _taskId) view returns (uint256, address, address, uint256, uint8, uint256, uint256, uint256, string, string)"
       ]
       
       const contract = new ethers.Contract(
@@ -73,10 +78,8 @@ export const usePostTaskSubmission = () => {
         description: "Please confirm the transaction in MetaMask...",
       })
 
-      // Call contract function with MetaMask
-      // Using a standard "unassigned" address until freelancer is selected
-      const unassignedFreelancer = "0x000000000000000000000000000000000000dEaD"
-      const tx = await contract.postTask(unassignedFreelancer, { value: rewardWei })
+      // Call contract function with title and description
+      const tx = await contract.postTask(formData.title, formData.description, { value: rewardWei })
       
       toast({
         title: "Transaction Submitted",

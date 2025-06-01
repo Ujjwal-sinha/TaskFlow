@@ -5,9 +5,8 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Clock, MapPin, Star, Users, Heart, Bookmark, TrendingUp, Zap } from "lucide-react"
-import { TaskDetailModal } from "../task/TaskDetailModal"
+import { Clock, MapPin, Star, Users, TrendingUp, Zap, Briefcase } from "lucide-react"
+import { TaskProposalModal } from "./TaskProposalModal"
 
 interface TaskCardProps {
   task: {
@@ -24,6 +23,7 @@ interface TaskCardProps {
       name: string
       avatar: string
       rating: number
+      address?: string
     }
     applicants: number
     tags: string[]
@@ -346,11 +346,25 @@ export function TaskCard({ task, index, onApplicationSubmitted }: TaskCardProps)
         </Card>
       </motion.div>
 
-      <TaskDetailModal
-        task={task}
+      <TaskProposalModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
-        onApplicationSubmitted={handleApplicationSubmitted}
+        task={{
+          _id: task._id,
+          title: task.title,
+          description: task.description,
+          category: task.category,
+          reward: task.reward,
+          currency: task.currency,
+          deadline: task.deadline,
+          skills: task.skills || [],
+          poster: {
+            address: task.client.id || task.client.address || '',
+            name: task.client.name
+          }
+        }}
+        currentUserAddress={currentAccount || undefined}
+        isTaskOwner={!!isTaskCreator}
       />
     </>
   )

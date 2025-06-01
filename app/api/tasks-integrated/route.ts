@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         id: clientAddress,
         name: 'Wallet User',
         address: clientAddress,
-        rating: 5.0
+        rating: 0
       },
       status: 'open',
       tags: Array.isArray(skills) ? skills : [],
@@ -217,6 +217,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Prevent task creator from applying to their own task
+    const isTaskCreator = task.client.id?.toLowerCase() === applicantAddress.toLowerCase() ||
+                         task.client.address?.toLowerCase() === applicantAddress.toLowerCase()
+    
+    if (isTaskCreator) {
+      return NextResponse.json(
+        { error: 'You cannot apply to your own task' },
+        { status: 400 }
+      );
+    }
+
     // Get or create applicant user profile
     let applicant = await User.findOne({ walletAddress: applicantAddress });
     
@@ -227,7 +238,7 @@ export async function PUT(request: NextRequest) {
         walletAddress: applicantAddress,
         role: 'freelancer',
         skills: [], // Will be updated when they complete profile
-        rating: 4.0,
+        rating: 0,
         totalJobs: 0,
         completedJobs: 0,
         isActive: true

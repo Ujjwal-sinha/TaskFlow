@@ -1,195 +1,203 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, DollarSign, Users, Loader2, Briefcase, Eye, CheckCircle } from "lucide-react"
-import { ClientTask } from "./types"
+import { Card, CardContent } from "@/components/ui/card"
+import { Loader2, Star, Target, Users } from "lucide-react"
+import { ClientTask, ClientStats } from "./types"
 
 interface ClientTasksListProps {
   tasks: ClientTask[]
+  stats: ClientStats
   loading: boolean
-  onSelectApplicant?: (taskId: string, applicantId: string) => void
 }
 
-export function ClientTasksList({ tasks, loading, onSelectApplicant }: ClientTasksListProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "open":
-        return "bg-green-100 text-green-800 hover:bg-green-200"
-      case "in_progress":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-200"
-      case "completed":
-        return "bg-purple-100 text-purple-800 hover:bg-purple-200"
-      case "cancelled":
-        return "bg-red-100 text-red-800 hover:bg-red-200"
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-200"
-    }
-  }
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
-
+export function ClientTasksList({ tasks, stats, loading }: ClientTasksListProps) {
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center justify-center py-12"
-      >
-        <div className="flex items-center space-x-2 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Loading your tasks...</span>
-        </div>
-      </motion.div>
+      <div className="flex items-center justify-center h-48">
+        <Loader2 className="h-8 w-8 animate-spin text-apple-blue" />
+        <p className="ml-2 text-muted-foreground">Loading your tasks...</p>
+      </div>
     )
   }
 
   if (tasks.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="py-12"
-      >
-        <Card className="border-dashed border-2 border-muted-foreground/25">
-          <CardContent className="flex flex-col items-center justify-center p-8 text-center">
-            <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Tasks Posted</h3>
-            <p className="text-muted-foreground mb-4">
-              You haven't posted any tasks yet. Create your first task to get started!
-            </p>
-            <Button>Post a Task</Button>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <div className="text-center py-12">
+        <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No Tasks Created Yet</h3>
+        <p className="text-muted-foreground mb-4">
+          Create your first task to start receiving applications
+        </p>
+        <Button onClick={() => window.location.href = '/post-task'}>
+          Post a Task
+        </Button>
+      </div>
     )
+  }
+
+  const statsConfig = [
+    { label: "Total Tasks", value: stats.totalTasks, color: "blue" },
+    { label: "Open", value: stats.openTasks, color: "green" },
+    { label: "In Progress", value: stats.inProgressTasks, color: "yellow" },
+    { label: "Completed", value: stats.completedTasks, color: "purple" },
+    { label: "Total Applicants", value: stats.totalApplicants, color: "indigo" },
+    { label: "XDC Posted", value: stats.totalRewardPosted, color: "emerald" }
+  ]
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'open': return 'default'
+      case 'in-progress': return 'secondary'
+      case 'completed': return 'outline'
+      default: return 'destructive'
+    }
+  }
+
+  const getStatsBgColor = (color: string) => {
+    const colorMap: Record<string, string> = {
+      blue: "bg-blue-50 border-blue-200",
+      green: "bg-green-50 border-green-200",
+      yellow: "bg-yellow-50 border-yellow-200",
+      purple: "bg-purple-50 border-purple-200",
+      indigo: "bg-indigo-50 border-indigo-200",
+      emerald: "bg-emerald-50 border-emerald-200"
+    }
+    return colorMap[color] || "bg-gray-50 border-gray-200"
+  }
+
+  const getStatsTextColor = (color: string) => {
+    const colorMap: Record<string, string> = {
+      blue: "text-blue-700",
+      green: "text-green-700",
+      yellow: "text-yellow-700",
+      purple: "text-purple-700",
+      indigo: "text-indigo-700",
+      emerald: "text-emerald-700"
+    }
+    return colorMap[color] || "text-gray-700"
+  }
+
+  const getStatsSubTextColor = (color: string) => {
+    const colorMap: Record<string, string> = {
+      blue: "text-blue-600",
+      green: "text-green-600",
+      yellow: "text-yellow-600",
+      purple: "text-purple-600",
+      indigo: "text-indigo-600",
+      emerald: "text-emerald-600"
+    }
+    return colorMap[color] || "text-gray-600"
   }
 
   return (
     <div className="space-y-6">
-      {tasks.map((task, index) => (
-        <motion.div
-          key={task._id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: index * 0.1 }}
-        >
-          <Card className="border-0 shadow-apple hover:shadow-lg transition-all duration-300">
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-xl mb-2 line-clamp-1">
-                    {task.title}
-                  </CardTitle>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span className="font-medium">
-                        {task.reward} {task.currency}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>Deadline: {formatDate(task.deadline)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span>{task.applicantCount} applicants</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {task.description}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge className={getStatusColor(task.status)}>
-                    {task.status.charAt(0).toUpperCase() + task.status.slice(1).replace('_', ' ')}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    Posted {formatDate(task.createdAt)}
-                  </span>
-                </div>
+      {/* Client Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {statsConfig.map((stat) => (
+          <Card key={stat.label} className={getStatsBgColor(stat.color)}>
+            <CardContent className="p-4 text-center">
+              <div className={`text-2xl font-bold ${getStatsTextColor(stat.color)}`}>
+                {stat.value}
               </div>
-            </CardHeader>
-            
-            <CardContent className="pt-0">
-              {task.applicants.length > 0 ? (
-                <div>
-                  <h4 className="text-sm font-medium mb-3">
-                    Applicants ({task.applicants.length})
-                  </h4>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {task.applicants.slice(0, 3).map((applicant) => (
-                      <div
-                        key={applicant._id}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={applicant.userAvatar} alt={applicant.userName} />
-                            <AvatarFallback>
-                              {applicant.userName.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{applicant.userName}</span>
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs text-muted-foreground">
-                                  ⭐ {applicant.userRating}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Bid: ${applicant.bidAmount} • Applied {formatDate(applicant.appliedAt)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          {task.status === 'open' && onSelectApplicant && (
-                            <Button 
-                              size="sm"
-                              onClick={() => onSelectApplicant(task._id, applicant._id)}
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Select
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {task.applicants.length > 3 && (
-                      <div className="text-center">
-                        <Button variant="ghost" size="sm">
-                          View all {task.applicants.length} applicants
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No applicants yet</p>
-                </div>
-              )}
+              <div className={`text-xs ${getStatsSubTextColor(stat.color)}`}>
+                {stat.label}
+              </div>
             </CardContent>
           </Card>
-        </motion.div>
-      ))}
+        ))}
+      </div>
+
+      {/* Tasks List */}
+      <div className="space-y-4">
+        {tasks.map((task) => (
+          <Card key={task._id} className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Task Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-semibold text-lg">{task.title}</h3>
+                      <Badge variant={getStatusVariant(task.status)}>
+                        {task.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {task.description}
+                    </p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-green-600 font-medium">
+                        {task.reward} {task.currency}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Created {new Date(task.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Due {new Date(task.deadline).toLocaleDateString()}
+                      </span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                        {task.applicantCount} applicants
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Applicants */}
+                {task.applicants.length > 0 && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Applicants ({task.applicants.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {task.applicants.slice(0, 3).map((applicant) => (
+                        <div key={applicant._id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarImage src={applicant.userAvatar} />
+                            <AvatarFallback className="text-xs">
+                              {applicant.userName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium truncate">{applicant.userName}</span>
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span className="text-xs text-muted-foreground">
+                                  {applicant.userRating === 0 ? 'New' : applicant.userRating.toFixed(1)}
+                                </span>
+                              </div>
+                              <span className="text-xs text-green-600 font-medium">
+                                {applicant.bidAmount} XDC
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
+                              {applicant.proposal}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Applied {new Date(applicant.appliedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {task.applicants.length > 3 && (
+                        <div className="text-center">
+                          <Button variant="outline" size="sm">
+                            View all {task.applicants.length} applicants
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   )
-} 
+}

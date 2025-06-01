@@ -1,22 +1,59 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react"
 import { Task, UserApplication, ClientTask, UserStats, ClientStats } from "../components/types"
 
-export const useDashboardData = () => {
-  const { toast } = useToast()
+interface UseDashboardDataReturn {
+  // Available Tasks
+  availableTasks: Task[]
+  tasksLoading: boolean
+  tasksError: string | null
+  
+  // User Applications
+  userApplications: UserApplication[]
+  applicationsLoading: boolean
+  
+  // Client Tasks
+  clientTasks: ClientTask[]
+  clientTasksLoading: boolean
+  
+  // Stats
+  stats: UserStats
+  clientStats: ClientStats
+  
+  // Actions
+  fetchAvailableTasks: () => Promise<void>
+  fetchUserApplications: () => Promise<void>
+  fetchClientTasks: () => Promise<void>
+  refreshAllData: () => Promise<void>
+}
 
-  // State
+export function useDashboardData(
+  searchQuery: string,
+  selectedCategory: string,
+  sortBy: string
+): UseDashboardDataReturn {
+  // Available Tasks State
   const [availableTasks, setAvailableTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [tasksError, setTasksError] = useState<string | null>(null)
+
+  // User Applications State
   const [userApplications, setUserApplications] = useState<UserApplication[]>([])
+  const [applicationsLoading, setApplicationsLoading] = useState(false)
+
+  // Client Tasks State
   const [clientTasks, setClientTasks] = useState<ClientTask[]>([])
-  const [userStats, setUserStats] = useState<UserStats>({
+  const [clientTasksLoading, setClientTasksLoading] = useState(false)
+
+  // Stats State
+  const [stats, setStats] = useState<UserStats>({
     totalApplications: 0,
     activeApplications: 0,
     averageMatchScore: 0,
     totalEarnings: 0
   })
+
   const [clientStats, setClientStats] = useState<ClientStats>({
     totalTasks: 0,
     openTasks: 0,
@@ -26,34 +63,22 @@ export const useDashboardData = () => {
     totalRewardPosted: 0
   })
 
-  // Loading states
-  const [tasksLoading, setTasksLoading] = useState(false)
-  const [applicationsLoading, setApplicationsLoading] = useState(false)
-  const [clientTasksLoading, setClientTasksLoading] = useState(false)
-
-  // Error states
-  const [tasksError, setTasksError] = useState<string | null>(null)
-
   // Fetch available tasks
-  const fetchAvailableTasks = useCallback(async (
-    searchQuery?: string,
-    selectedCategory?: string,
-    sortBy?: string
-  ) => {
+  const fetchAvailableTasks = async () => {
     try {
       setTasksLoading(true)
       setTasksError(null)
 
       const params = new URLSearchParams({
-        sortBy: sortBy || 'newest',
+        sortBy,
         limit: '12'
       })
 
-      if (selectedCategory && selectedCategory !== "All") {
+      if (selectedCategory !== "All") {
         params.append('category', selectedCategory)
       }
 
-      if (searchQuery?.trim()) {
+      if (searchQuery.trim()) {
         params.append('search', searchQuery.trim())
       }
 
@@ -71,134 +96,112 @@ export const useDashboardData = () => {
     } finally {
       setTasksLoading(false)
     }
-  }, [])
+  }
 
   // Fetch user applications
-  const fetchUserApplications = useCallback(async (userId?: string) => {
-    if (!userId) return
-
+  const fetchUserApplications = async () => {
     try {
       setApplicationsLoading(true)
-      const response = await fetch(`/api/users/${userId}/applications`)
+      const response = await fetch('/api/user/applications')
       
       if (!response.ok) {
         throw new Error('Failed to fetch applications')
       }
 
       const data = await response.json()
-      if (data.success) {
-        setUserApplications(data.applications || [])
-        
-        // Calculate user stats
-        const totalApplications = data.applications.length
-        const activeApplications = data.applications.filter(
-          (app: UserApplication) => app.status === 'pending'
-        ).length
-        const averageMatchScore = data.applications.reduce(
-          (sum: number, app: UserApplication) => sum + (app.aiAnalysis?.matchScore || 0), 0
-        ) / Math.max(totalApplications, 1)
-        
-        setUserStats({
-          totalApplications,
-          activeApplications,
-          averageMatchScore: Math.round(averageMatchScore),
-          totalEarnings: 0 // This would come from completed tasks
-        })
-      }
+      setUserApplications(data.applications || [])
+      
+      // Calculate stats from applications
+      const applications = data.applications || []
+      const activeApps = applications.filter((app: UserApplication) => 
+        app.status === 'pending' || app.status === 'under-review'
+      )
+      const totalMatches = applications
+        .filter((app: UserApplication) => app.aiAnalysis?.matchScore)
+        .reduce((sum: number, app: UserApplication) => sum + (app.aiAnalysis?.matchScore || 0), 0)
+      const avgMatch = applications.length > 0 ? Math.round(totalMatches / applications.length) : 0
+
+      setStats(prev => ({
+        ...prev,
+        totalApplications: applications.length,
+        activeApplications: activeApps.length,
+        averageMatchScore: avgMatch
+      }))
     } catch (err) {
       console.error('Error fetching applications:', err)
-      toast({
-        title: "Error",
-        description: "Failed to load your applications",
-        variant: "destructive"
-      })
     } finally {
       setApplicationsLoading(false)
     }
-  }, [toast])
+  }
 
   // Fetch client tasks
-  const fetchClientTasks = useCallback(async (userId?: string) => {
-    if (!userId) return
-
+  const fetchClientTasks = async () => {
     try {
       setClientTasksLoading(true)
-      const response = await fetch(`/api/users/${userId}/tasks`)
+      const response = await fetch('/api/user/tasks')
       
       if (!response.ok) {
         throw new Error('Failed to fetch client tasks')
       }
 
       const data = await response.json()
-      if (data.success) {
-        setClientTasks(data.tasks || [])
-        
-        // Calculate client stats
-        const totalTasks = data.tasks.length
-        const openTasks = data.tasks.filter(
-          (task: ClientTask) => task.status === 'open'
-        ).length
-        const inProgressTasks = data.tasks.filter(
-          (task: ClientTask) => task.status === 'in_progress'
-        ).length
-        const completedTasks = data.tasks.filter(
-          (task: ClientTask) => task.status === 'completed'
-        ).length
-        const totalApplicants = data.tasks.reduce(
-          (sum: number, task: ClientTask) => sum + task.applicantCount, 0
-        )
-        const totalRewardPosted = data.tasks.reduce(
-          (sum: number, task: ClientTask) => sum + task.reward, 0
-        )
+      setClientTasks(data.tasks || [])
+      
+      // Calculate client stats
+      const tasks = data.tasks || []
+      const openTasks = tasks.filter((task: ClientTask) => task.status === 'open')
+      const inProgressTasks = tasks.filter((task: ClientTask) => task.status === 'in-progress')
+      const completedTasks = tasks.filter((task: ClientTask) => task.status === 'completed')
+      const totalApplicants = tasks.reduce((sum: number, task: ClientTask) => sum + task.applicantCount, 0)
+      const totalReward = tasks.reduce((sum: number, task: ClientTask) => sum + task.reward, 0)
 
-        setClientStats({
-          totalTasks,
-          openTasks,
-          inProgressTasks,
-          completedTasks,
-          totalApplicants,
-          totalRewardPosted
-        })
-      }
+      setClientStats({
+        totalTasks: tasks.length,
+        openTasks: openTasks.length,
+        inProgressTasks: inProgressTasks.length,
+        completedTasks: completedTasks.length,
+        totalApplicants,
+        totalRewardPosted: totalReward
+      })
     } catch (err) {
       console.error('Error fetching client tasks:', err)
-      toast({
-        title: "Error",
-        description: "Failed to load your tasks",
-        variant: "destructive"
-      })
     } finally {
       setClientTasksLoading(false)
     }
-  }, [toast])
+  }
 
-  // Refetch all data
-  const refetchData = useCallback((userId?: string) => {
-    fetchUserApplications(userId)
-    fetchClientTasks(userId)
+  // Refresh all data
+  const refreshAllData = async () => {
+    await Promise.all([
+      fetchAvailableTasks(),
+      fetchUserApplications(),
+      fetchClientTasks()
+    ])
+  }
+
+  // Effect to fetch tasks when filters change
+  useEffect(() => {
     fetchAvailableTasks()
-  }, [fetchUserApplications, fetchClientTasks, fetchAvailableTasks])
+  }, [searchQuery, selectedCategory, sortBy])
+
+  // Initial data fetch
+  useEffect(() => {
+    refreshAllData()
+  }, [])
 
   return {
-    // Data
     availableTasks,
-    userApplications,
-    clientTasks,
-    userStats,
-    clientStats,
-
-    // Loading states
     tasksLoading,
-    applicationsLoading,
-    clientTasksLoading,
-
-    // Error states
     tasksError,
-
-    // Functions
+    userApplications,
+    applicationsLoading,
+    clientTasks,
+    clientTasksLoading,
+    stats,
+    clientStats,
     fetchAvailableTasks,
     fetchUserApplications,
     fetchClientTasks,
-    refetchData
+    refreshAllData
   }
-} 
+}

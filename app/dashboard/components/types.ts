@@ -76,4 +76,9 @@ export interface UserStats {
   activeApplications: number
   averageMatchScore: number
   totalEarnings: number
-} 
+}
+
+export const categories = [
+  "All", "Design", "Development", "Writing", "Blockchain", 
+  "Video", "Marketing", "Audio", "Business", "Data", "Translation"
+]

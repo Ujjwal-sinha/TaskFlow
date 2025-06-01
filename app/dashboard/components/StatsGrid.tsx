@@ -1,150 +1,155 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { 
-  User, 
-  Briefcase, 
-  Target, 
-  DollarSign,
-  Users,
-  CheckCircle,
-  Clock,
-  Star
-} from "lucide-react"
-import { UserStats, ClientStats } from "./types"
+import { Card, CardContent } from "@/components/ui/card"
+import { Send, Target, Star, DollarSign } from "lucide-react"
+import { UserStats } from "./types"
 
 interface StatsGridProps {
-  userStats: UserStats
-  clientStats: ClientStats
-  activeTab: string
+  stats: UserStats
 }
 
-export function StatsGrid({ userStats, clientStats, activeTab }: StatsGridProps) {
-  const freelancerStats = [
+export function StatsGrid({ stats }: StatsGridProps) {
+  const statsConfig = [
     {
       title: "Total Applications",
-      value: userStats.totalApplications,
-      icon: User,
-      color: "from-blue-500 to-blue-600",
-      description: "Applications submitted"
+      value: stats.totalApplications,
+      icon: Send,
+      color: "blue",
+      delay: 0.3
     },
     {
-      title: "Active Applications",
-      value: userStats.activeApplications,
-      icon: Clock,
-      color: "from-orange-500 to-orange-600",
-      description: "Currently pending"
-    },
-    {
-      title: "Average Match Score",
-      value: `${userStats.averageMatchScore}%`,
+      title: "Active Applications", 
+      value: stats.activeApplications,
       icon: Target,
-      color: "from-green-500 to-green-600",
-      description: "AI compatibility rating"
+      color: "green",
+      delay: 0.4
+    },
+    {
+      title: "Avg. AI Match",
+      value: `${stats.averageMatchScore}%`,
+      icon: Star,
+      color: "purple",
+      delay: 0.5
     },
     {
       title: "Total Earnings",
-      value: `$${userStats.totalEarnings}`,
+      value: `${stats.totalEarnings} XDC`,
       icon: DollarSign,
-      color: "from-purple-500 to-purple-600",
-      description: "From completed tasks"
+      color: "orange",
+      delay: 0.6
     }
   ]
 
-  const clientStatsData = [
-    {
-      title: "Total Tasks Posted",
-      value: clientStats.totalTasks,
-      icon: Briefcase,
-      color: "from-blue-500 to-blue-600",
-      description: "Tasks created"
-    },
-    {
-      title: "Open Tasks",
-      value: clientStats.openTasks,
-      icon: Clock,
-      color: "from-orange-500 to-orange-600",
-      description: "Accepting applications"
-    },
-    {
-      title: "Completed Tasks",
-      value: clientStats.completedTasks,
-      icon: CheckCircle,
-      color: "from-green-500 to-green-600",
-      description: "Successfully finished"
-    },
-    {
-      title: "Total Applicants",
-      value: clientStats.totalApplicants,
-      icon: Users,
-      color: "from-purple-500 to-purple-600",
-      description: "Across all tasks"
+  const getColorClasses = (color: string) => {
+    const colorMap = {
+      blue: {
+        bg: "from-blue-50 to-blue-100",
+        text: "text-blue-700",
+        valueText: "text-blue-800",
+        iconBg: "from-blue-500 to-blue-600",
+        gradient: "from-blue-400 to-blue-600",
+        shadow: "rgba(59, 130, 246, 0.4)"
+      },
+      green: {
+        bg: "from-green-50 to-green-100",
+        text: "text-green-700",
+        valueText: "text-green-800",
+        iconBg: "from-green-500 to-green-600",
+        gradient: "from-green-400 to-green-600",
+        shadow: "rgba(34, 197, 94, 0.4)"
+      },
+      purple: {
+        bg: "from-purple-50 to-purple-100",
+        text: "text-purple-700",
+        valueText: "text-purple-800",
+        iconBg: "from-purple-500 to-purple-600",
+        gradient: "from-purple-400 to-purple-600",
+        shadow: "rgba(147, 51, 234, 0.4)"
+      },
+      orange: {
+        bg: "from-orange-50 to-orange-100",
+        text: "text-orange-700",
+        valueText: "text-orange-800",
+        iconBg: "from-orange-500 to-orange-600",
+        gradient: "from-orange-400 to-orange-600",
+        shadow: "rgba(251, 146, 60, 0.4)"
+      }
     }
-  ]
-
-  const stats = activeTab === "freelancer" ? freelancerStats : clientStatsData
+    return colorMap[color as keyof typeof colorMap]
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat, index) => (
-        <motion.div
-          key={stat.title}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: index * 0.1 }}
-          whileHover={{ y: -5 }}
-        >
-          <Card className="border-0 shadow-apple hover:shadow-lg transition-all duration-300 overflow-hidden relative group">
-            <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+    >
+      {statsConfig.map((stat, index) => {
+        const colors = getColorClasses(stat.color)
+        const Icon = stat.icon
+        
+        return (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: stat.delay }}
+            whileHover={{ 
+              scale: 1.02,
+              y: -4,
+              transition: { type: "spring", stiffness: 300, damping: 20 }
+            }}
+          >
+            <Card className={`border-0 shadow-lg hover:shadow-xl transition-all duration-500 bg-gradient-to-br ${colors.bg} overflow-hidden relative group`}>
               <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color} text-white shadow-sm`}>
-                  <stat.icon className="h-4 w-4" />
-                </div>
-              </motion.div>
-            </CardHeader>
-            <CardContent className="relative">
-              <motion.div
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: index * 0.1 }}
-                className="text-2xl font-bold mb-1"
-              >
-                {stat.value}
-              </motion.div>
-              <p className="text-xs text-muted-foreground">
-                {stat.description}
-              </p>
-              
-              {/* Add trending indicator for some stats */}
-              {(stat.title.includes("Applications") || stat.title.includes("Tasks")) && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="mt-2"
-                >
-                  <Badge 
-                    variant="secondary" 
-                    className="text-xs bg-green-100 text-green-700 hover:bg-green-200"
+                className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-500`}
+              />
+              <CardContent className="p-6 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <motion.p 
+                      className={`text-sm ${colors.text} font-medium`}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: stat.delay + 0.1 }}
+                    >
+                      {stat.title}
+                    </motion.p>
+                    <motion.p 
+                      className={`text-3xl font-bold ${colors.valueText}`}
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: stat.delay + 0.2, type: "spring", stiffness: 300, damping: 20 }}
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      {stat.value}
+                    </motion.p>
+                  </div>
+                  <motion.div 
+                    className={`p-3 rounded-full bg-gradient-to-br ${colors.iconBg} shadow-lg`}
+                    whileHover={{ 
+                      scale: 1.1,
+                      rotate: 10,
+                      boxShadow: `0 10px 25px -5px ${colors.shadow}`
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <Star className="h-3 w-3 mr-1" />
-                    Active
-                  </Badge>
-                </motion.div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      ))}
-    </div>
+                    <Icon className="h-6 w-6 text-white" />
+                  </motion.div>
+                </div>
+                <motion.div
+                  className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${colors.gradient}`}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: stat.delay + 0.3, duration: 0.8 }}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )
+      })}
+    </motion.div>
   )
-} 
+}

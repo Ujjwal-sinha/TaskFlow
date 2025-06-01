@@ -4,13 +4,14 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Navigation } from "@/components/custom/navigation"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Loader2 } from "lucide-react"
 import { useUser } from "@civic/auth-web3/react"
 import { useTaskEscrow } from "@/hooks/useTaskEscrow"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
 
-// Import modular components
+// Import our new components
 import { DashboardHeader } from "./components/DashboardHeader"
 import { StatsGrid } from "./components/StatsGrid"
 import { TasksFilters } from "./components/TasksFilters"
@@ -27,28 +28,25 @@ export default function DashboardPage() {
     process.env.NEXT_PUBLIC_TASK_ESCROW_ADDRESS
   )
 
-  // Dashboard data hook
-  const {
-    availableTasks,
-    userApplications,
-    clientTasks,
-    userStats,
-    clientStats,
-    tasksLoading,
-    applicationsLoading,
-    clientTasksLoading,
-    tasksError,
-    fetchAvailableTasks,
-    fetchUserApplications,
-    fetchClientTasks,
-    refetchData
-  } = useDashboardData()
-
-  // Local state
-  const [activeTab, setActiveTab] = useState("freelancer")
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [sortBy, setSortBy] = useState("newest")
+
+  // Use our custom hook for data management
+  const {
+    availableTasks,
+    tasksLoading,
+    tasksError,
+    userApplications,
+    applicationsLoading,
+    clientTasks,
+    clientTasksLoading,
+    stats,
+    clientStats,
+    fetchAvailableTasks,
+    refreshAllData
+  } = useDashboardData(searchQuery, selectedCategory, sortBy)
 
   // Authentication check
   useEffect(() => {
@@ -62,58 +60,35 @@ export default function DashboardPage() {
     }
   }, [user, isLoading, router, toast])
 
-  // Fetch data on mount and when filters change
-  useEffect(() => {
-    if (user) {
-      fetchAvailableTasks(searchQuery, selectedCategory, sortBy)
-      fetchUserApplications(user.id)
-      fetchClientTasks(user.id)
-    }
-  }, [user, searchQuery, selectedCategory, sortBy, fetchAvailableTasks, fetchUserApplications, fetchClientTasks])
-
-  // Debounced search effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (user) {
-        fetchAvailableTasks(searchQuery, selectedCategory, sortBy)
-      }
-    }, 500)
-
-    return () => clearTimeout(timeoutId)
-  }, [searchQuery, user, selectedCategory, sortBy, fetchAvailableTasks])
-
-  // Handle application submission
+  // Handle application submitted
   const handleTaskApplicationSubmitted = () => {
-    if (user) {
-      fetchUserApplications(user.id)
-      fetchAvailableTasks(searchQuery, selectedCategory, sortBy)
-    }
+    refreshAllData()
+    toast({
+      title: "Application Submitted! 🎉",
+      description: "Your application has been sent to the client.",
+    })
   }
 
-  // Handle applicant selection
-  const handleSelectApplicant = async (taskId: string, applicantId: string) => {
-    try {
-      // This would integrate with your smart contract
-      toast({
-        title: "Feature Coming Soon",
-        description: "Applicant selection will be integrated with smart contracts",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to select applicant",
-        variant: "destructive"
-      })
-    }
+  // Handle clear filters
+  const handleClearFilters = () => {
+    setSearchQuery("")
+    setSelectedCategory("All")
+    fetchAvailableTasks()
+  }
+
+  // Handle browse tasks navigation
+  const handleBrowseTasks = () => {
+    const tabsList = document.querySelector('[value="browse"]') as HTMLElement
+    if (tabsList) tabsList.click()
   }
 
   // Loading state
   if (isLoading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <p>Loading...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center space-x-3 bg-background/95 p-4 rounded-lg shadow-lg">
+          <Loader2 className="h-5 w-5 animate-spin text-apple-blue" />
+          <p className="font-medium">Loading your dashboard...</p>
         </div>
       </div>
     )
@@ -124,42 +99,34 @@ export default function DashboardPage() {
       <Navigation />
 
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-        {/* Dashboard Header */}
+        {/* Header Component */}
         <DashboardHeader
           user={user}
-          isConnected={isConnected}
           currentAccount={currentAccount}
+          isConnected={isConnected}
           onConnect={connect}
         />
 
-        {/* Main Dashboard Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-96">
-            <TabsTrigger value="freelancer">Freelancer View</TabsTrigger>
-            <TabsTrigger value="client">Client View</TabsTrigger>
-          </TabsList>
+        {/* Stats Grid Component */}
+        <StatsGrid stats={stats} />
 
-          {/* Stats Grid */}
-          <StatsGrid
-            userStats={userStats}
-            clientStats={clientStats}
-            activeTab={activeTab}
-          />
+        {/* Main Content Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Tabs defaultValue="browse" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="browse">Browse Tasks</TabsTrigger>
+              <TabsTrigger value="applications">My Applications</TabsTrigger>
+              <TabsTrigger value="my-tasks">My Tasks</TabsTrigger>
+            </TabsList>
 
-          {/* Freelancer Tab */}
-          <TabsContent value="freelancer" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Tabs defaultValue="browse" className="space-y-6">
-                <TabsList>
-                  <TabsTrigger value="browse">Browse Tasks</TabsTrigger>
-                  <TabsTrigger value="applications">My Applications</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="browse" className="space-y-6">
+            {/* Browse Tasks Tab */}
+            <TabsContent value="browse" className="space-y-6">
+              <Card className="border-0 shadow-apple bg-card/50 backdrop-blur-sm">
+                <CardContent className="p-6">
                   <TasksFilters
                     searchQuery={searchQuery}
                     selectedCategory={selectedCategory}
@@ -168,40 +135,38 @@ export default function DashboardPage() {
                     onCategoryChange={setSelectedCategory}
                     onSortChange={setSortBy}
                   />
-                  
-                  <TasksGrid
-                    tasks={availableTasks}
-                    loading={tasksLoading}
-                    error={tasksError}
-                    onApplicationSubmitted={handleTaskApplicationSubmitted}
-                  />
-                </TabsContent>
+                </CardContent>
+              </Card>
 
-                <TabsContent value="applications">
-                  <ApplicationsList
-                    applications={userApplications}
-                    loading={applicationsLoading}
-                  />
-                </TabsContent>
-              </Tabs>
-            </motion.div>
-          </TabsContent>
+              <TasksGrid
+                tasks={availableTasks}
+                loading={tasksLoading}
+                error={tasksError}
+                onRetry={fetchAvailableTasks}
+                onClearFilters={handleClearFilters}
+                onApplicationSubmitted={handleTaskApplicationSubmitted}
+              />
+            </TabsContent>
 
-          {/* Client Tab */}
-          <TabsContent value="client" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
+            {/* My Applications Tab */}
+            <TabsContent value="applications" className="space-y-6">
+              <ApplicationsList
+                applications={userApplications}
+                loading={applicationsLoading}
+                onBrowseTasks={handleBrowseTasks}
+              />
+            </TabsContent>
+
+            {/* My Tasks Tab */}
+            <TabsContent value="my-tasks" className="space-y-6">
               <ClientTasksList
                 tasks={clientTasks}
+                stats={clientStats}
                 loading={clientTasksLoading}
-                onSelectApplicant={handleSelectApplicant}
               />
-            </motion.div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
       </div>
     </div>
   )

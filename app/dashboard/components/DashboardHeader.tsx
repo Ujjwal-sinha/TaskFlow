@@ -2,81 +2,83 @@
 
 import { motion } from "framer-motion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Wallet, CheckCircle, AlertCircle } from "lucide-react"
+import { AlertCircle, User } from "lucide-react"
 
 interface DashboardHeaderProps {
   user: any
-  isConnected: boolean
   currentAccount: string | null
+  isConnected: boolean
   onConnect: () => void
 }
 
-export function DashboardHeader({ user, isConnected, currentAccount, onConnect }: DashboardHeaderProps) {
+export function DashboardHeader({ user, currentAccount, isConnected, onConnect }: DashboardHeaderProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="mb-8"
-    >
-      <Card className="border-0 shadow-apple bg-gradient-to-r from-blue-50 to-purple-50">
-        <CardContent className="p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 ring-4 ring-white shadow-lg">
-                <AvatarImage 
-                  src={user?.avatar || '/placeholder-user.jpg'} 
-                  alt={user?.name || 'User'} 
-                />
-                <AvatarFallback className="text-xl font-semibold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                  {(user?.name || 'U').charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-bold">
-                  Welcome back, {user?.name || user?.displayName || 'User'}!
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Ready to explore new opportunities or manage your tasks?
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                <span className="text-sm font-medium">Wallet Status:</span>
-                {isConnected ? (
-                  <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Connected
-                  </Badge>
-                ) : (
-                  <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-200">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Not Connected
-                  </Badge>
-                )}
-              </div>
-              
-              {isConnected && currentAccount && (
-                <p className="text-xs text-muted-foreground font-mono">
-                  {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)}
+    <>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="mb-8"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Freelancer Dashboard</h1>
+            <p className="text-muted-foreground">
+              Discover opportunities and manage your applications
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">
+                Hello, {String(user?.displayName || user?.name || 'User')}!
+              </p>
+              {currentAccount && (
+                <p className="text-sm text-muted-foreground font-mono">
+                  {currentAccount.substring(0, 6)}...{currentAccount.slice(-4)}
                 </p>
               )}
-              
-              {!isConnected && (
-                <Button onClick={onConnect} size="sm" className="mt-2">
+            </div>
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={(user?.avatar as string) || '/placeholder-user.jpg'} />
+              <AvatarFallback>
+                <User className="h-6 w-6" />
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Wallet Connection */}
+      {!isConnected && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-8"
+        >
+          <Card className="border-2 border-orange-200 bg-orange-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-8 w-8 text-orange-600" />
+                  <div>
+                    <h3 className="font-semibold text-orange-800">Connect Your Wallet</h3>
+                    <p className="text-sm text-orange-700">
+                      Connect MetaMask to apply for tasks and manage applications
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={onConnect} className="bg-orange-600 hover:bg-orange-700">
                   Connect Wallet
                 </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </>
   )
-} 
+}

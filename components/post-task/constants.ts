@@ -56,8 +56,8 @@ export const SKILLS = [
   "Smart Contracts",
 ].sort()
 
-export const MIN_TITLE_LENGTH = 10
+export const MIN_TITLE_LENGTH = 5
 export const MIN_DESCRIPTION_LENGTH = 50
-export const MIN_BUDGET = 10
+export const MIN_BUDGET = 5
 export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 export const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'] 

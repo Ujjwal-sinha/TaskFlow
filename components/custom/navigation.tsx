@@ -90,11 +90,15 @@ export function Navigation() {
   };
 
   const handleCivicLogout = async () => {
+    setIsCivicLoading(true);
+    setCivicError(null);
     try {
       await signOut();
     } catch (err) {
       console.error('Civic logout failed:', err);
+      setCivicError('Logout failed. Please try again.');
     }
+    setIsCivicLoading(false);
   };
 
   return (

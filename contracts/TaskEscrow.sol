@@ -9,7 +9,8 @@ contract TaskEscrow is ReentrancyGuard {
     enum TaskStatus {
         Created,
         Completed,
-        Paid
+        Paid,
+        Cancelled
     }
 
     // Struct to define a Task
@@ -32,6 +33,7 @@ contract TaskEscrow is ReentrancyGuard {
     event TaskPosted(uint256 indexed taskId, address indexed poster, address indexed freelancer, uint256 reward);
     event TaskCompleted(uint256 indexed taskId, uint256 timestamp);
     event PaymentReleased(uint256 indexed taskId, address indexed freelancer, uint256 amount);
+    event TaskCancelled(uint256 indexed taskId, address indexed poster, address indexed freelancer, uint256 reward);
 
     /**
      * @dev Constructor is not needed as there are no initial state variables to set.
@@ -102,6 +104,45 @@ contract TaskEscrow is ReentrancyGuard {
         // Emit TaskCompleted and PaymentReleased events
         emit TaskCompleted(_taskId, block.timestamp);
         emit PaymentReleased(_taskId, task.freelancer, task.reward);
+    }
+
+    /**
+     * @dev Fetches the details of a specific task.
+     * @param _taskId The ID of the task to fetch.
+     * @return taskId The unique identifier for the task.
+     * @return poster The address of the task creator.
+     * @return freelancer The address of the assigned freelancer.
+     * @return reward The amount of XDC tokens for the task.
+     * @return status The current status of the task.
+     * @return createdAt The timestamp when the task was created.
+     * @return completedAt The timestamp when the task was marked as completed.
+     */
+    /**
+     * @dev Allows the task poster to cancel a task and refund the reward.
+     *      Only the task poster can call this function.
+     *      Uses ReentrancyGuard to prevent reentrant attacks.
+     * @param _taskId The ID of the task to be cancelled.
+     */
+    function cancelTask(uint256 _taskId) public nonReentrant {
+        // Retrieve the task from storage
+        Task storage task = tasks[_taskId];
+
+        // Ensure the task exists
+        require(task.taskId == _taskId, "Task does not exist");
+        // Ensure only the poster can cancel the task
+        require(task.poster == msg.sender, "Only the task poster can cancel it");
+        // Ensure the task is in 'Created' status before cancellation
+        require(task.status == TaskStatus.Created, "Task is not in 'Created' status");
+
+        // Update task status
+        task.status = TaskStatus.Cancelled;
+
+        // Refund the reward to the poster
+        (bool success, ) = task.poster.call{value: task.reward}("");
+        require(success, "Failed to refund reward to poster");
+
+        // Emit TaskCancelled event
+        emit TaskCancelled(_taskId, task.poster, task.freelancer, task.reward);
     }
 
     /**

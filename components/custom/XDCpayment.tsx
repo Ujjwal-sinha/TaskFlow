@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { useToast } from '../ui/use-toast';
 
 // Replace with your deployed contract address and ABI
-const CONTRACT_ADDRESS = "0xYourPaymentContractAddressHere"; 
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_UTILITY_TOKEN_ADDRESS ;
 const CONTRACT_ABI = [
   // Example ABI for a payment function
   "function makePayment(address _recipient, uint256 _amount) payable",
@@ -34,13 +34,13 @@ const XDCpayment: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (window.ethereum) {
+    if (typeof window !== 'undefined' && window.ethereum) {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
       checkWalletConnection();
     }
     return () => {
-      if (window.ethereum) {
+      if (typeof window !== 'undefined' && window.ethereum) {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
         window.ethereum.removeListener('chainChanged', handleChainChanged);
       }
@@ -48,7 +48,7 @@ const XDCpayment: React.FC = () => {
   }, []);
 
   const handleAccountsChanged = (accounts: string[]) => {
-    if (accounts.length === 0) {
+    if (typeof window !== 'undefined' && window.ethereum && accounts.length === 0) {
       setWalletConnected(false);
       toast({
         title: "Wallet Disconnected",
@@ -65,6 +65,7 @@ const XDCpayment: React.FC = () => {
   };
 
   const handleChainChanged = (chainId: string) => {
+    if (typeof window === 'undefined' || !window.ethereum) return;
     const currentChainId = parseInt(chainId, 16);
     if (currentChainId !== CHAIN_ID) {
       toast({
@@ -83,7 +84,7 @@ const XDCpayment: React.FC = () => {
   };
 
   const checkWalletConnection = async () => {
-    if (window.ethereum) {
+    if (typeof window !== 'undefined' && window.ethereum) {
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.listAccounts();
@@ -109,7 +110,7 @@ const XDCpayment: React.FC = () => {
   };
 
   const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
+    if (typeof window === 'undefined' || typeof window.ethereum === 'undefined') {
       toast({
         title: "MetaMask Not Found",
         description: "Please install MetaMask to use this feature.",
@@ -239,12 +240,16 @@ const XDCpayment: React.FC = () => {
     setTransactionHash(null);
 
     try {
+      if (typeof window === 'undefined' || !window.ethereum) {
+        throw new Error("MetaMask is not available.");
+      }
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS || '', CONTRACT_ABI, signer);
 
       const tx = await contract.makePayment(recipientAddress, paymentAmountWei, {
         value: paymentAmountWei, // Sending XDC as msg.value
+        gasLimit: 5000000, // Increased gas limit to prevent transaction execution revert issues
       });
 
       setTransactionHash(tx.hash);

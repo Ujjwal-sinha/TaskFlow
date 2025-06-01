@@ -2,6 +2,7 @@
 
 import React from "react"
 
+import type { RefObject } from "react"
 import { useRef } from "react"
 import { motion, useInView, useScroll, useTransform } from "framer-motion"
 import { Navigation } from "@/components/custom/navigation"

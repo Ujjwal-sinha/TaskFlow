@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/custom/theme-toggle"
-import { Menu, Bell, Briefcase, LogIn } from "lucide-react"
+import { Menu, Bell, Briefcase, LogIn, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@civic/auth-web3/react";
+import { ethers } from "ethers";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -20,11 +21,61 @@ const navigation = [
 ]
 
 export function Navigation() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
   const [isCivicLoading, setIsCivicLoading] = useState(false);
   const [civicError, setCivicError] = useState<string | null>(null);
   const { user, signIn, signOut, isLoading: isUserLoading } = useUser();
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  const showWalletButton = pathname === '/dashboard' || pathname === '/marketplace';
+
+  useEffect(() => {
+    const checkMetaMaskConnection = async () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const accounts = await provider.listAccounts();
+          if (accounts.length > 0) {
+            setIsWalletConnected(true);
+            setWalletAddress(accounts[0].address);
+          } else {
+            setIsWalletConnected(false);
+            setWalletAddress(null);
+          }
+        } catch (error) {
+          console.error("Error checking MetaMask connection:", error);
+          setIsWalletConnected(false);
+          setWalletAddress(null);
+        }
+      }
+    };
+
+    checkMetaMaskConnection();
+
+    if (typeof window !== 'undefined' && window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setIsWalletConnected(true);
+          setWalletAddress(accounts[0]);
+        } else {
+          setIsWalletConnected(false);
+          setWalletAddress(null);
+        }
+      });
+      window.ethereum.on('chainChanged', () => {
+        checkMetaMaskConnection();
+      });
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', () => {});
+        window.ethereum.removeListener('chainChanged', () => {});
+      }
+    };
+  }, []);
 
   const handleCivicLogin = async () => {
     setIsCivicLoading(true);
@@ -92,7 +143,7 @@ export function Navigation() {
 
           {/* Authentication Buttons */}
           {user ? (
-            <Button variant="outline" onClick={handleCivicLogout}>
+            <Button variant="outline" onClick={handleCivicLogout} disabled={isUserLoading || isCivicLoading}>
               Sign Out
             </Button>
           ) : (
@@ -105,6 +156,51 @@ export function Navigation() {
                 {isCivicLoading || isUserLoading ? 'Processing...' : 'Sign In with Civic'}
               </Button>
             </Link>
+          )}
+
+          {showWalletButton && (
+            isWalletConnected ? (
+              <div className="flex gap-2">
+                <Button variant="outline" className="truncate max-w-[150px]">
+                  {walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.slice(-4)}` : 'Wallet Connected'}
+                </Button>
+                <Button variant="outline" size="icon" onClick={async () => {
+                  if (typeof window !== 'undefined' && window.ethereum) {
+                    try {
+                      // Request permissions with an empty eth_accounts to revoke existing permissions
+                      await window.ethereum.request({ 
+                        method: 'wallet_requestPermissions', 
+                        params: [{ eth_accounts: {} }] 
+                      });
+                      setIsWalletConnected(false);
+                      setWalletAddress(null);
+                    } catch (error) {
+                      console.error("Error disconnecting from MetaMask:", error);
+                    }
+                  }
+                }}>
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={async () => {
+                if (typeof window !== 'undefined' && window.ethereum) {
+                  try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    const accounts = await provider.listAccounts();
+                    if (accounts.length > 0) {
+                      setIsWalletConnected(true);
+                      setWalletAddress(accounts[0].address);
+                    }
+                  } catch (error) {
+                    console.error("Error connecting to MetaMask:", error);
+                  }
+                }
+              }}>
+                Connect Wallet
+              </Button>
+            )
           )}
         </div>
 
@@ -140,7 +236,7 @@ export function Navigation() {
                   </div>
                   {/* Authentication Buttons for Mobile */}
                   {user ? (
-                    <Button variant="outline" className="w-full" onClick={handleCivicLogout}>
+                    <Button variant="outline" className="w-full" onClick={handleCivicLogout} disabled={isUserLoading || isCivicLoading}>
                       Sign Out
                     </Button>
                   ) : (
@@ -155,6 +251,53 @@ export function Navigation() {
                       </Button>
                     </Link>
                   )}
+                  
+                  {/* Wallet Connection for Mobile */}
+                  {showWalletButton && (
+                    isWalletConnected ? (
+                      <div className="mt-2 space-y-2">
+                        <Button variant="outline" className="w-full truncate">
+                          {walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.slice(-4)}` : 'Wallet Connected'}
+                        </Button>
+                        <Button variant="outline" className="w-full" onClick={async () => {
+                          if (typeof window !== 'undefined' && window.ethereum) {
+                            try {
+                              // Request permissions with an empty eth_accounts to revoke existing permissions
+                              await window.ethereum.request({ 
+                                method: 'wallet_requestPermissions', 
+                                params: [{ eth_accounts: {} }] 
+                              });
+                              setIsWalletConnected(false);
+                              setWalletAddress(null);
+                            } catch (error) {
+                              console.error("Error disconnecting from MetaMask:", error);
+                            }
+                          }
+                        }}>
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Disconnect Wallet
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button variant="outline" className="w-full mt-2" onClick={async () => {
+                        if (typeof window !== 'undefined' && window.ethereum) {
+                          try {
+                            await window.ethereum.request({ method: 'eth_requestAccounts' });
+                            const provider = new ethers.BrowserProvider(window.ethereum);
+                            const accounts = await provider.listAccounts();
+                            if (accounts.length > 0) {
+                              setIsWalletConnected(true);
+                              setWalletAddress(accounts[0].address);
+                            }
+                          } catch (error) {
+                            console.error("Error connecting to MetaMask:", error);
+                          }
+                        }
+                      }}>
+                        Connect Wallet
+                      </Button>
+                    )
+                  )}
                 </div>
               </div>
             </SheetContent>
@@ -162,5 +305,6 @@ export function Navigation() {
         </div>
       </nav>
     </header>
-  )
+  );
 }
+

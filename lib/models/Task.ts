@@ -12,6 +12,7 @@ export interface ITask extends Document {
     name: string;
     avatar?: string;
     rating: number;
+    address?: string; // Wallet address
   };
   applicants: Array<{
     userId: string;
@@ -21,6 +22,7 @@ export interface ITask extends Document {
     appliedAt: Date;
     proposal: string;
     bidAmount?: number;
+    walletAddress?: string; // Freelancer's wallet address
   }>;
   tags: string[];
   status: 'open' | 'in-progress' | 'completed' | 'cancelled';
@@ -34,6 +36,13 @@ export interface ITask extends Document {
     matchScore: number;
     reason: string;
   }>;
+  // Smart contract integration fields
+  contractTaskId?: number;
+  txHash?: string;
+  freelancerAddress?: string;
+  contractError?: string;
+  completionTxHash?: string;
+  cancellationTxHash?: string;
 }
 
 const TaskSchema = new Schema<ITask>({
@@ -47,12 +56,23 @@ const TaskSchema = new Schema<ITask>({
     type: String,
     required: true,
     trim: true,
-    maxlength: 5000
+    maxlength: 2000
   },
   category: {
     type: String,
     required: true,
-    enum: ['Design', 'Development', 'Writing', 'Marketing', 'Video', 'Audio', 'Business', 'Data', 'Translation', 'Blockchain', 'Other']
+    enum: [
+      'Design',
+      'Development',
+      'Writing',
+      'Marketing',
+      'Video',
+      'Blockchain',
+      'Data',
+      'Audio',
+      'Business',
+      'Translation'
+    ]
   },
   reward: {
     type: Number,
@@ -61,16 +81,21 @@ const TaskSchema = new Schema<ITask>({
   },
   currency: {
     type: String,
-    required: true,
-    default: 'XDC'
+    default: 'XDC',
+    enum: ['XDC', 'USD', 'EUR']
   },
   deadline: {
     type: Date,
-    required: true
+    required: true,
+    validate: {
+      validator: function(v: Date) {
+        return v > new Date();
+      },
+      message: 'Deadline must be in the future'
+    }
   },
   location: {
     type: String,
-    required: true,
     default: 'Remote'
   },
   client: {
@@ -83,14 +108,16 @@ const TaskSchema = new Schema<ITask>({
       required: true
     },
     avatar: {
-      type: String,
-      default: '/placeholder-user.jpg'
+      type: String
     },
     rating: {
       type: Number,
-      default: 0,
       min: 0,
-      max: 5
+      max: 5,
+      default: 5
+    },
+    address: {
+      type: String // Wallet address
     }
   },
   applicants: [{
@@ -103,14 +130,13 @@ const TaskSchema = new Schema<ITask>({
       required: true
     },
     userAvatar: {
-      type: String,
-      default: '/placeholder-user.jpg'
+      type: String
     },
     userRating: {
       type: Number,
-      default: 0,
       min: 0,
-      max: 5
+      max: 5,
+      default: 4
     },
     appliedAt: {
       type: Date,
@@ -118,11 +144,15 @@ const TaskSchema = new Schema<ITask>({
     },
     proposal: {
       type: String,
-      required: true
+      required: true,
+      maxlength: 1000
     },
     bidAmount: {
       type: Number,
       min: 0
+    },
+    walletAddress: {
+      type: String // Freelancer's wallet address
     }
   }],
   tags: [{
@@ -158,15 +188,36 @@ const TaskSchema = new Schema<ITask>({
     reason: {
       type: String
     }
-  }]
+  }],
+  // Smart contract integration fields
+  contractTaskId: {
+    type: Number
+  },
+  txHash: {
+    type: String
+  },
+  freelancerAddress: {
+    type: String
+  },
+  contractError: {
+    type: String
+  },
+  completionTxHash: {
+    type: String
+  },
+  cancellationTxHash: {
+    type: String
+  }
 }, {
   timestamps: true
 });
 
 // Index for better search performance
 TaskSchema.index({ title: 'text', description: 'text', tags: 'text' });
-TaskSchema.index({ category: 1 });
-TaskSchema.index({ status: 1 });
-TaskSchema.index({ createdAt: -1 });
+TaskSchema.index({ category: 1, status: 1 });
+TaskSchema.index({ reward: 1 });
+TaskSchema.index({ deadline: 1 });
+TaskSchema.index({ contractTaskId: 1 });
+TaskSchema.index({ 'client.address': 1 });
 
 export default mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema); 

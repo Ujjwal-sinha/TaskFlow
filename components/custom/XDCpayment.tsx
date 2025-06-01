@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { useToast } from '../ui/use-toast';
 
 // Replace with your deployed contract address and ABI
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_UTILITY_TOKEN_ADDRESS ;
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TASK_ESCROW_ADDRESS ;
 const CONTRACT_ABI = [
   // Example ABI for a payment function
   "function makePayment(address _recipient, uint256 _amount) payable",

@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node scripts/seed-data.js"
+    "seed": "node scripts/seed-data.js",
+    "test:contract": "npx hardhat test",
+    "compile:contract": "npx hardhat compile"
   },
   "dependencies": {
     "@civic/auth": "^0.6.0",

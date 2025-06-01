@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTaskEscrow } from "@/hooks/useTaskEscrow"
 import { Task, UserApplication, ClientTask, UserStats, ClientStats } from "../components/types"
 
 interface UseDashboardDataReturn {
@@ -33,6 +34,8 @@ export function useDashboardData(
   selectedCategory: string,
   sortBy: string
 ): UseDashboardDataReturn {
+  const { currentAccount } = useTaskEscrow(process.env.NEXT_PUBLIC_TASK_ESCROW_ADDRESS)
+  
   // Available Tasks State
   const [availableTasks, setAvailableTasks] = useState<Task[]>([])
   const [tasksLoading, setTasksLoading] = useState(false)
@@ -102,7 +105,14 @@ export function useDashboardData(
   const fetchUserApplications = async () => {
     try {
       setApplicationsLoading(true)
-      const response = await fetch('/api/user/applications')
+      
+      if (!currentAccount) {
+        console.log('No wallet connected for fetching applications')
+        setUserApplications([])
+        return
+      }
+      
+      const response = await fetch(`/api/users/${currentAccount}/applications`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch applications')
@@ -138,7 +148,14 @@ export function useDashboardData(
   const fetchClientTasks = async () => {
     try {
       setClientTasksLoading(true)
-      const response = await fetch('/api/user/tasks')
+      
+      if (!currentAccount) {
+        console.log('No wallet connected for fetching tasks')
+        setClientTasks([])
+        return
+      }
+      
+      const response = await fetch(`/api/users/${currentAccount}/tasks`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch client tasks')
@@ -187,7 +204,7 @@ export function useDashboardData(
   // Initial data fetch
   useEffect(() => {
     refreshAllData()
-  }, [])
+  }, [currentAccount]) // Refetch when wallet changes
 
   return {
     availableTasks,

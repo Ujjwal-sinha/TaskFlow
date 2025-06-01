@@ -380,7 +380,7 @@ export function TaskProposalModal({
             </TabsList>
 
             {/* Submit Proposal Tab */}
-            {!isTaskOwner && (
+            {!isTaskOwner ? (
               <TabsContent value="submit" className="space-y-4">
                 <Card>
                   <CardHeader>
@@ -459,6 +459,32 @@ export function TaskProposalModal({
                       )}
                       Submit Proposal
                     </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ) : (
+              <TabsContent value="submit" className="space-y-4">
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold mb-2">You Own This Task</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Task owners cannot submit proposals to their own tasks. You can view incoming proposals in the "View Proposals" tab and see AI-generated suggestions for what good proposals look like.
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveTab("proposals")}
+                      >
+                        View Proposals
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveTab("ai-suggestions")}
+                      >
+                        AI Suggestions
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

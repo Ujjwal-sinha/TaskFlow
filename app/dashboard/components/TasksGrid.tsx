@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+
 import { TaskCard } from "@/components/custom/task-card"
 import { Task } from "./types"
+import { useTaskEscrow } from "@/hooks/useTaskEscrow"
 
 interface TasksGridProps {
   tasks: Task[]
@@ -23,6 +24,19 @@ export function TasksGrid({
   onClearFilters,
   onApplicationSubmitted
 }: TasksGridProps) {
+  const { currentAccount } = useTaskEscrow(process.env.NEXT_PUBLIC_TASK_ESCROW_ADDRESS)
+
+  // Helper function to check if current user is the task creator
+  const isTaskCreator = (task: Task) => {
+    if (!currentAccount) return false
+    
+    const walletAddress = currentAccount.toLowerCase()
+    const taskCreatorId = task.client?.id?.toLowerCase()
+    // console.log(task.client?.address)
+    
+    return walletAddress === taskCreatorId
+  }
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -71,6 +85,7 @@ export function TasksGrid({
           task={task} 
           index={index}
           onApplicationSubmitted={onApplicationSubmitted}
+          isTaskCreator={isTaskCreator(task)}
         />
       ))}
     </div>

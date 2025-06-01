@@ -25,7 +25,7 @@ const navigation = [
   { name: "Marketplace", href: "/marketplace", icon: Briefcase },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Post Task", href: "/post-task", icon: Plus },
-  { name: "Chatbot", href: "/chatbot", icon: MessageSquare },
+  {name :"About", href: "/about", icon: MessageSquare},
 ]
 
 export function Navigation() {

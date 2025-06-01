@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { Proposal } from '@/lib/models/Proposal'
+import { ITask } from '@/lib/models/Task'
+import mongoose from 'mongoose'
 
 // POST /api/tasks/[id]/proposals/[proposalId]/select - Select a proposal and assign task
 export async function POST(
@@ -10,19 +12,45 @@ export async function POST(
   try {
     await connectDB()
     
-    const { id, proposalId } = params
     const body = await request.json()
-    const { taskOwnerAddress } = body
+    const { clientAddress } = body
 
-    if (!taskOwnerAddress) {
+    if (!clientAddress) {
       return NextResponse.json(
-        { success: false, error: 'Task owner address is required' },
+        { success: false, error: 'Client address is required' },
         { status: 400 }
       )
     }
 
-    // Find the proposal to select
-    const proposal = await Proposal.findById(proposalId)
+    // Get the task
+    const Task = mongoose.models.Task || mongoose.model<ITask>('Task', new mongoose.Schema({}))
+    const task = await Task.findById(params.id)
+    
+    if (!task) {
+      return NextResponse.json(
+        { success: false, error: 'Task not found' },
+        { status: 404 }
+      )
+    }
+
+    // Verify the client owns this task
+    if (task.client?.address !== clientAddress) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: You can only select proposals for your own tasks' },
+        { status: 403 }
+      )
+    }
+
+    // Check if task is still open
+    if (task.status !== 'open') {
+      return NextResponse.json(
+        { success: false, error: 'Task is no longer accepting proposals' },
+        { status: 400 }
+      )
+    }
+
+    // Get the proposal
+    const proposal = await Proposal.findById(params.proposalId)
     
     if (!proposal) {
       return NextResponse.json(
@@ -31,60 +59,39 @@ export async function POST(
       )
     }
 
-    if (proposal.taskId !== id) {
+    // Verify the proposal belongs to this task
+    if (proposal.taskId !== params.id) {
       return NextResponse.json(
         { success: false, error: 'Proposal does not belong to this task' },
         { status: 400 }
       )
     }
 
-    if (proposal.status !== 'pending') {
-      return NextResponse.json(
-        { success: false, error: 'Proposal is no longer available for selection' },
-        { status: 400 }
-      )
-    }
-
-    // Prevent task owner from selecting their own proposal
-    if (proposal.proposerAddress.toLowerCase() === taskOwnerAddress.toLowerCase()) {
-      return NextResponse.json(
-        { success: false, error: 'Task owners cannot select their own proposals' },
-        { status: 403 }
-      )
-    }
-
     // Update the selected proposal status
-    proposal.status = 'selected'
-    proposal.updatedAt = new Date()
-    await proposal.save()
+    await Proposal.findByIdAndUpdate(params.proposalId, {
+      status: 'selected'
+    })
 
-    // Update all other proposals for this task to 'rejected'
+    // Reject all other proposals for this task
     await Proposal.updateMany(
       { 
-        taskId: id, 
-        _id: { $ne: proposalId },
-        status: 'pending'
+        taskId: params.id, 
+        _id: { $ne: params.proposalId } 
       },
-      { 
-        status: 'rejected',
-        updatedAt: new Date()
-      }
+      { status: 'rejected' }
     )
+
+    // Update task status and assign freelancer
+    await Task.findByIdAndUpdate(params.id, {
+      status: 'in_progress',
+      freelancerAddress: proposal.proposerAddress,
+      selectedProposal: params.proposalId
+    })
 
     return NextResponse.json({
       success: true,
       message: 'Proposal selected successfully',
-      selectedProposal: {
-        ...proposal.toObject(),
-        _id: proposal._id.toString()
-      },
-      assignToAddress: proposal.proposerAddress,
-      // This data will be used by the frontend to call the blockchain assignTask function
-      blockchainAction: {
-        type: 'assignTask',
-        taskId: id,
-        freelancerAddress: proposal.proposerAddress
-      }
+      selectedProposal: proposal
     })
 
   } catch (error) {

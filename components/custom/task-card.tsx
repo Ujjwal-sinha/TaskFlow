@@ -5,8 +5,10 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock, MapPin, Star, Users, TrendingUp, Zap, Briefcase } from "lucide-react"
 import { TaskProposalModal } from "./TaskProposalModal"
+import { useTaskEscrow } from "@/hooks/useTaskEscrow"
 
 interface TaskCardProps {
   task: {
@@ -33,13 +35,13 @@ interface TaskCardProps {
   }
   index: number
   onApplicationSubmitted?: () => void
+  isTaskCreator?: boolean
 }
 
-export function TaskCard({ task, index, onApplicationSubmitted }: TaskCardProps) {
+export function TaskCard({ task, index, onApplicationSubmitted, isTaskCreator }: TaskCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
+  const { currentAccount } = useTaskEscrow(process.env.NEXT_PUBLIC_TASK_ESCROW_ADDRESS)
 
   const handleApplyClick = () => {
     setIsModalOpen(true)
@@ -54,16 +56,6 @@ export function TaskCard({ task, index, onApplicationSubmitted }: TaskCardProps)
       onApplicationSubmitted()
     }
     setIsModalOpen(false)
-  }
-
-  const handleBookmark = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsBookmarked(!isBookmarked)
-  }
-
-  const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsLiked(!isLiked)
   }
 
   const cardVariants = {
@@ -131,43 +123,6 @@ export function TaskCard({ task, index, onApplicationSubmitted }: TaskCardProps)
             initial="hidden"
             animate={isHovered ? "visible" : "hidden"}
           />
-          
-          {/* Action buttons overlay */}
-          <motion.div 
-            className="absolute top-4 right-4 flex gap-2 z-10"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ 
-              opacity: isHovered ? 1 : 0, 
-              y: isHovered ? 0 : -10 
-            }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.button
-              onClick={handleLike}
-              className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                isLiked 
-                  ? 'bg-red-100 text-red-500 shadow-lg' 
-                  : 'bg-white/80 text-gray-400 hover:bg-red-50 hover:text-red-500'
-              }`}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-            </motion.button>
-            
-            <motion.button
-              onClick={handleBookmark}
-              className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                isBookmarked 
-                  ? 'bg-blue-100 text-blue-500 shadow-lg' 
-                  : 'bg-white/80 text-gray-400 hover:bg-blue-50 hover:text-blue-500'
-              }`}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
-            </motion.button>
-          </motion.div>
 
           <CardHeader className="pb-3 relative z-10">
             <div className="flex items-start justify-between">
@@ -364,7 +319,7 @@ export function TaskCard({ task, index, onApplicationSubmitted }: TaskCardProps)
           }
         }}
         currentUserAddress={currentAccount || undefined}
-        isTaskOwner={!!isTaskCreator}
+        isTaskOwner={isTaskCreator}
       />
     </>
   )

@@ -237,7 +237,7 @@ export function TaskProposalModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          taskOwnerAddress: currentUserAddress
+          clientAddress: currentUserAddress
         })
       })
 
@@ -268,18 +268,36 @@ export function TaskProposalModal({
   }
 
   const markTaskComplete = async () => {
-    if (!task) return
+    if (!task || !currentUserAddress) return
 
     setLoading(true)
     try {
-      await completeTask(parseInt(task._id))
+      // First complete on blockchain
+      const txHash = await completeTask(parseInt(task._id))
       
-      toast({
-        title: "Task Completed! 🎉",
-        description: "Payment has been released to the freelancer",
+      // Then update database with completion details
+      const response = await fetch(`/api/tasks/${task._id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientAddress: currentUserAddress,
+          transactionHash: txHash,
+          blockchainCompleted: true
+        })
       })
+
+      const data = await response.json()
       
-      onClose()
+      if (data.success) {
+        toast({
+          title: "Task Completed! 🎉",
+          description: "Payment has been released to the freelancer",
+        })
+        
+        onClose()
+      } else {
+        throw new Error(data.error)
+      }
     } catch (error) {
       toast({
         title: "Completion Failed",

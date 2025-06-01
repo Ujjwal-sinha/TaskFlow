@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const transformedTasks = tasks.map(task => ({
       ...task,
       applicants: task.applicants?.length || 0,
-      _id: task._id.toString()
+      _id: task._id?.toString() || ''
     }));
 
     return NextResponse.json({
@@ -115,26 +115,51 @@ export async function POST(request: NextRequest) {
 
     // Calculate deadline from timeline
     const deadline = new Date();
-    const timelineMatch = timeline.match(/(\d+)\s*(day|week|month)s?/i);
-    if (timelineMatch) {
-      const amount = parseInt(timelineMatch[1]);
-      const unit = timelineMatch[2].toLowerCase();
-      
-      switch (unit) {
-        case 'day':
-          deadline.setDate(deadline.getDate() + amount);
-          break;
-        case 'week':
-          deadline.setDate(deadline.getDate() + (amount * 7));
-          break;
-        case 'month':
-          deadline.setMonth(deadline.getMonth() + amount);
-          break;
-      }
-    } else {
-      // Default to 1 week if timeline format is not recognized
-      deadline.setDate(deadline.getDate() + 7);
+    
+    // Handle different timeline formats from the frontend
+    let daysToAdd = 7; // Default to 1 week
+    
+    switch (timeline) {
+      case '1-3-days':
+        daysToAdd = 3; // Use maximum of range for deadline
+        break;
+      case '1-week':
+        daysToAdd = 7;
+        break;
+      case '2-weeks':
+        daysToAdd = 14;
+        break;
+      case '1-month':
+        daysToAdd = 30;
+        break;
+      case '2-3-months':
+        daysToAdd = 90; // Use maximum of range
+        break;
+      case 'flexible':
+        daysToAdd = 30; // Default to 1 month for flexible
+        break;
+      default:
+        // Fallback: try to parse custom timeline formats like "5 days", "3 weeks", etc.
+        const timelineMatch = timeline.match(/(\d+)\s*(day|week|month)s?/i);
+        if (timelineMatch) {
+          const amount = parseInt(timelineMatch[1]);
+          const unit = timelineMatch[2].toLowerCase();
+          
+          switch (unit) {
+            case 'day':
+              daysToAdd = amount;
+              break;
+            case 'week':
+              daysToAdd = amount * 7;
+              break;
+            case 'month':
+              daysToAdd = amount * 30;
+              break;
+          }
+        }
     }
+    
+    deadline.setDate(deadline.getDate() + daysToAdd);
 
     // Create new task
     const newTask = new Task({

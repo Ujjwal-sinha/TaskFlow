@@ -114,7 +114,7 @@ const TaskSchema = new Schema<ITask>({
       type: Number,
       min: 0,
       max: 5,
-      default: 5
+      default: 0
     },
     address: {
       type: String // Wallet address
@@ -136,7 +136,7 @@ const TaskSchema = new Schema<ITask>({
       type: Number,
       min: 0,
       max: 5,
-      default: 4
+      default: 0
     },
     appliedAt: {
       type: Date,

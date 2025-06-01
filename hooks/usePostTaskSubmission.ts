@@ -112,7 +112,7 @@ export const usePostTaskSubmission = () => {
         clientId: user?.id || currentAccount,
         clientName: user?.name || user?.displayName || 'Wallet User',
         clientAvatar: user?.avatar || '/placeholder-user.jpg',
-        clientRating: user?.rating || 5.0,
+        clientRating: user?.rating || 0,
         contractTaskId,
         txHash: tx.hash,
         clientAddress: currentAccount,

@@ -27,12 +27,10 @@ import {
   CheckCircle,
   AlertCircle,
   User,
-  Heart,
-  Bookmark,
-  Share,
   Eye,
   Award,
-  Zap
+  Zap,
+  Briefcase
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useTaskEscrow } from '@/hooks/useTaskEscrow'
@@ -82,10 +80,13 @@ export function TaskDetailModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [applicationSuccess, setApplicationSuccess] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState<any>(null)
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
 
   if (!task) return null
+
+  // Check if current user is the task creator
+  const isTaskCreator = currentAccount && task.client.id && 
+    (task.client.id.toLowerCase() === currentAccount.toLowerCase() || 
+     task.client.address?.toLowerCase() === currentAccount.toLowerCase())
 
   const handleApply = async () => {
     if (!isConnected || !currentAccount) {
@@ -119,7 +120,7 @@ export function TaskDetailModal({
           freelancerAddress: currentAccount,
           freelancerName: user?.name || user?.displayName || `User ${currentAccount.substring(0, 6)}`,
           freelancerAvatar: user?.avatar || '/placeholder-user.jpg',
-          freelancerRating: user?.rating || 4.0
+          freelancerRating: user?.rating || 0
         }),
       })
 
@@ -158,18 +159,6 @@ export function TaskDetailModal({
     setApplicationSuccess(false)
     setAiAnalysis(null)
     onClose()
-  }
-
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked)
-    toast({
-      title: isBookmarked ? "Removed from bookmarks" : "Added to bookmarks",
-      description: isBookmarked ? "Task removed from your saved list" : "Task saved to your bookmarks",
-    })
-  }
-
-  const handleLike = () => {
-    setIsLiked(!isLiked)
   }
 
   const modalVariants = {
@@ -244,42 +233,6 @@ export function TaskDetailModal({
                         {task.reward} {task.currency}
                       </motion.span>
                     </DialogDescription>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      onClick={handleLike}
-                      className={`p-2 rounded-full transition-all duration-300 ${
-                        isLiked 
-                          ? 'bg-red-50 text-red-500 shadow-md' 
-                          : 'bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500'
-                      }`}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
-                    </motion.button>
-                    
-                    <motion.button
-                      onClick={handleBookmark}
-                      className={`p-2 rounded-full transition-all duration-300 ${
-                        isBookmarked 
-                          ? 'bg-blue-50 text-blue-500 shadow-md' 
-                          : 'bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-500'
-                      }`}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Bookmark className={`h-5 w-5 ${isBookmarked ? 'fill-current' : ''}`} />
-                    </motion.button>
-                    
-                    <motion.button
-                      className="p-2 rounded-full bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-500 transition-all duration-300"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Share className="h-5 w-5" />
-                    </motion.button>
                   </div>
                 </motion.div>
               </DialogHeader>
@@ -439,7 +392,7 @@ export function TaskDetailModal({
                           <div className="flex items-center">
                             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
                             <span className="text-sm text-muted-foreground">
-                              {task.client.rating.toFixed(1)}
+                              {task.client.rating === 0 ? 'New' : task.client.rating.toFixed(1)}
                             </span>
                           </div>
                         </div>
@@ -450,7 +403,38 @@ export function TaskDetailModal({
 
                 {/* Application Section */}
                 <motion.div variants={childVariants}>
-                  {!applicationSuccess ? (
+                  {isTaskCreator ? (
+                    <div className="border-t pt-6">
+                      <motion.div 
+                        className="text-center py-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
+                        whileHover={{ 
+                          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                          y: -2
+                        }}
+                      >
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        >
+                          <Briefcase className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                        </motion.div>
+                        <h4 className="font-semibold mb-2 text-blue-800">This is Your Task</h4>
+                        <p className="text-blue-700 mb-6">
+                          You cannot apply to your own task. View your applicants in the dashboard.
+                        </p>
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button 
+                            onClick={handleClose}
+                            className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+                            size="lg"
+                          >
+                            Close
+                          </Button>
+                        </motion.div>
+                      </motion.div>
+                    </div>
+                  ) : !applicationSuccess ? (
                     <div className="border-t pt-6">
                       <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                         <Send className="h-5 w-5 text-blue-500" />

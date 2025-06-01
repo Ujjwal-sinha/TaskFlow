@@ -836,7 +836,7 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button asChild size="lg" className="bg-apple-blue hover:bg-apple-blue/90">
-                <Link href="/login">
+                <Link href="/">
                   Get Started Now
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -936,7 +936,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-muted-foreground">© 2024 TaskFlow. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 TaskFlow. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
                 Terms of Service

@@ -71,7 +71,8 @@ const TaskSchema = new Schema<ITask>({
       'Data',
       'Audio',
       'Business',
-      'Translation'
+      'Translation',
+      'Other'
     ]
   },
   reward: {
@@ -220,4 +221,4 @@ TaskSchema.index({ deadline: 1 });
 TaskSchema.index({ contractTaskId: 1 });
 TaskSchema.index({ 'client.address': 1 });
 
-export default mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema); 
+export default mongoose.models.Task || mongoose.model<ITask>('Task', TaskSchema);

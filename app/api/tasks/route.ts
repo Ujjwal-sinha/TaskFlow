@@ -177,10 +177,9 @@ export async function POST(request: NextRequest) {
         avatar: clientAvatar || '/placeholder-user.jpg',
         rating: clientRating || 0
       },
-      tags: skills || [],
-      status: 'open'
-    });
-
+      tags: Array.isArray(skills) ? skills : [],
+       status: 'open'
+     });
     const savedTask = await newTask.save();
 
     // Generate AI suggestions for the task
@@ -198,17 +197,9 @@ export async function POST(request: NextRequest) {
       }
     } catch (aiError) {
       console.error('Error generating AI suggestions:', aiError);
-      // Continue without AI suggestions if there's an error
     }
 
-    return NextResponse.json({
-      message: 'Task created successfully',
-      task: {
-        ...savedTask.toObject(),
-        _id: savedTask._id.toString()
-      }
-    }, { status: 201 });
-
+    return NextResponse.json({ message: 'Task created successfully', task: savedTask });
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json(
@@ -216,4 +207,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

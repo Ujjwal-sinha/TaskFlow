@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ITask extends Document {
   title: string;
   description: string;
-  category: string;
+  category: string; 
   reward: number;
   currency: string;
   deadline: Date;

@@ -95,7 +95,8 @@ The application will be available at `http://localhost:3000`
 
 ## Workflow 
 
-      🧑‍💼 Client                      🧑‍💻 Freelancer
+```
+      🧑‍💼 Client                      🧑‍💻Freelancer
           │                                 │
   Post Task ─────▶ 🧠 Eliza OS (Groq) ◀───── Submit Proposal
           │             │                           │
@@ -104,6 +105,9 @@ The application will be available at `http://localhost:3000`
    Accept Proposal                     Get Feedback
           │                                 │
        Smart Contract Escrow (XDC)
+
+
+```
 
 ## Project Structure
 

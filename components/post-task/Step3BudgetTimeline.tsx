@@ -36,7 +36,7 @@ export const Step3BudgetTimeline: React.FC<Step3Props> = ({
         skills: formData.skills.join(','),
       })
 
-      const response = await fetch(`/api/ai-suggestions/analyze?${params}`)
+      const response = await fetch(`/api/ai-suggestions?${params}`)
       if (!response.ok) {
         throw new Error('Failed to fetch AI suggestions')
       }
@@ -185,4 +185,4 @@ export const Step3BudgetTimeline: React.FC<Step3Props> = ({
       )}
     </motion.div>
   )
-} 
+}

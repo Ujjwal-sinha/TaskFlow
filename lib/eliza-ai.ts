@@ -1,3 +1,5 @@
+import { createGroq } from "@ai-sdk/groq";
+import type { Plugin } from "@elizaos/core";
 import { IUser } from './models/User';
 import { ITask } from './models/Task';
 
@@ -33,7 +35,7 @@ export class ElizaAIService {
 
         if (matchScore > 30) { // Only include freelancers with >30% match
           suggestions.push({
-            userId: freelancer._id.toString(),
+            userId: (freelancer._id as string).toString(),
             userName: freelancer.name,
             matchScore,
             reason
@@ -258,4 +260,4 @@ export class ElizaAIService {
   }
 }
 
-export const elizaAI = ElizaAIService.getInstance(); 
+export const elizaAI = ElizaAIService.getInstance();
